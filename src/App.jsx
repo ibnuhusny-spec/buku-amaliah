@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Star, Moon, Sun, BookOpen, CheckCircle, Award, ChevronLeft, ChevronRight, PenTool, User, CloudUpload, ArrowRight, Book, Settings, Camera, X, Heart, MessageCircle, List, Calendar, Palette, Sparkles, Loader2 } from 'lucide-react';
+import { Star, Moon, Sun, BookOpen, CheckCircle, Award, ChevronLeft, ChevronRight, PenTool, User, CloudUpload, ArrowRight, Book, Settings, Camera, X, Heart, MessageCircle, List, Calendar, Palette, Sparkles, Loader2, Trophy } from 'lucide-react';
 
-// --- DATA: KOLEKSI DOA (HISNUL MUSLIM LENGKAP) ---
+// --- DATA: KOLEKSI DOA (BERSIH & LENGKAP) ---
 const DAFTAR_DOA = [
   { judul: "1. Doa Saat Bangun Tidur", arab: "الْحَمْدُ لِلَّهِ الَّذِي أَحْيَانَا بَعْدَ مَا أَمَاتَنَا وَإِلَيْهِ النُّشُورُ", latin: "Alhamdu lillahil-ladzi ahyana ba'da ma amatana wa ilaihin-nushur.", arti: "Segala puji bagi Allah yang menghidupkan kami kembali setelah mematikan kami dan kepada-Nya (kami) akan dibangkitkan." },
   { judul: "2. Doa Mengenakan Pakaian", arab: "الْحَمْدُ لِلَّهِ الَّذِي كَسَانِي هَذَا (الثَّوْبَ) وَرَزَقَنِيهِ مِنْ غَيْرِ حَوْلٍ مِنِّي وَلَا قُوَّةٍ", latin: "Alhamdu lillahil-ladzi kasani hadza (ats-tsauba) wa razaqanihi min ghairi haulin minni wa la quwwah.", arti: "Segala puji bagi Allah yang telah memakaikan pakaian ini kepadaku dan mengaruniakannya kepadaku tanpa daya dan kekuatan dariku." },
-  { judul: "3. Doa Mengenakan Pakaian Baru", arab: "اللَّهُمَّ لَكَ الْحَمْدُ أَنْتَ كَسَوْتَنِيهِ، أَسْأَلُكَ مِنْ خَيْرِهِ وَخَيْرِ مَا صُنِعَ لَهُ، وَأَعُوذُ بِكَ مِنْ شَرِّهِ وَشَرِّ مَا صُنِعَ لَهُ", latin: "Allahumma lakal-hamdu anta kasautaniih, as-aluka min khairihi wa khairi maa shuni'a lah, wa a'udzu bika min syarrihi wa syarri maa shuni'a lah.", arti: "Ya Allah, segala puji bagi-Mu, Engkau-lah yang memakaikan pakaian ini kepadaku, aku memohon kepada-Mu untuk memperoleh kebaikannya dan kebaikan apa saja yang dibuat untuknya, dan aku berlindung kepada-Mu dari keburukannya dan keburukan apa saja yang dibuat untuknya." },
+  { judul: "3. Doa Mengenakan Pakaian Baru", arab: "اللَّهُمَّ لَكَ الْحَمْدُ أَنْتَ كَسَوْتَنِيهِ، أَسْأَلُكَ مِنْ خَيْرِهِ وَخَيْرِ مَا صُنِعَ لَهُ، وَأَعُوذُ بِكَ مِنْ شَرِّهِ وَشَرِّ مَا صُنِعَ لَهُ", latin: "Allahumma lakal-hamdu anta kasautaniih, as-aluka min khairihi wa khairi maa shuni'a lah, wa a'udzu bika min syarrihi wa syarri maa shuni'a lah.", arti: "Ya Allah, segala puji bagi-Mu, Engkau-lah yang memakaikan pakaian ini kepadaku, aku memohon kepada-Mu untuk memperoleh kebaikannya." },
   { judul: "4. Doa Menanggalkan Pakaian", arab: "بِسْمِ اللهِ", latin: "Bismillah.", arti: "Dengan nama Allah." },
   { judul: "5. Doa Ketika Masuk WC", arab: "(بِسْمِ اللهِ) اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْخُبُثِ وَالْخَبَائِثِ", latin: "(Bismillah) Allahumma inni a'udzu bika minal khubutsi wal khabaa-its.", arti: "Ya Allah, sesungguhnya aku berlindung kepada-Mu dari godaan setan laki-laki dan perempuan." },
   { judul: "6. Doa Ketika Keluar WC", arab: "غُفْرَانَكَ", latin: "Ghufraanak.", arti: "Aku memohon ampunan-Mu." },
@@ -15,17 +15,17 @@ const DAFTAR_DOA = [
   { judul: "10. Doa Ketika Masuk Rumah", arab: "بِسْمِ اللهِ وَلَجْنَا، وَبِسْمِ اللهِ خَرَجْنَا، وَعَلَى رَبِّنَا تَوَكَّلْنَا", latin: "Bismillaahi walajnaa, wa bismillaahi kharajnaa, wa 'alaa rabbinaa tawakkalnaa.", arti: "Dengan nama Allah kami masuk, dan dengan nama Allah kami keluar, dan kepada Tuhan kami, kami bertawakkal." },
   { judul: "11. Doa Pergi Ke Masjid", arab: "اللَّهُمَّ اجْعَلْ فِي قَلْبِي نُورًا، وَفِي لِسَانِي نُورًا، وَاجْعَلْ فِي سَمْعِي نُورًا، وَاجْعَلْ فِي بَصَرِي نُورًا", latin: "Allahummaj'al fii qalbii nuuraa, wa fii lisaanii nuuraa, waj'al fii sam'ii nuuraa, waj'al fii basharii nuuraa.", arti: "Ya Allah, jadikanlah cahaya di hatiku, cahaya di lidahku, cahaya di pendengaranku, cahaya di penglihatanku." },
   { judul: "12. Doa Masuk Masjid", arab: "اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ", latin: "Allahummaftah lii abwaaba rahmatik.", arti: "Ya Allah, bukalah untukku pintu-pintu rahmat-Mu." },
-  { judul: "13. Dzikir Setelah Azan", arab: "اللَّهُمَّ رَبَّ هَذِهِ الدَّعْوَةِ التَّامَّةِ، وَالصَّلَاةِ الْقَائِمَةِ، آتِ مُحَمَّدًا الْوَسِيلَةَ وَالْفَضِيلَةَ، وَابْعَثْهُ مَقَامًا مَحْمُودًا الَّذِي وَعَدْتَهُ", latin: "Allahumma rabba hadzihid-da'watit-tammah, wash-shalaatil qaa-imah, aati Muhammadanil-wasiilata wal-fadhilah, wab'atshu maqaamam-mahmuudanil-ladzi wa'adtah.", arti: "Ya Allah, Tuhan pemilik panggilan yang sempurna ini dan shalat yang ditegakkan, berikanlah kepada Muhammad wasilah dan keutamaan, dan bangkitkanlah ia di tempat yang terpuji yang telah Engkau janjikan kepadanya." },
+  { judul: "13. Dzikir Setelah Azan", arab: "اللَّهُمَّ رَبَّ هَذِهِ الدَّعْوَةِ التَّامَّةِ، وَالصَّلَاةِ الْقَائِمَةِ، آتِ مُحَمَّدًا الْوَسِيلَةَ وَالْفَضِيلَةَ، وَابْعَثْهُ مَقَامًا مَحْمُودًا الَّذِي وَعَدْتَهُ", latin: "Allahumma rabba hadzihid-da'watit-tammah, wash-shalaatil qaa-imah, aati Muhammadanil-wasiilata wal-fadhilah, wab'atshu maqaamam-mahmuudanil-ladzi wa'adtah.", arti: "Ya Allah, Tuhan pemilik panggilan yang sempurna ini, berikanlah kepada Muhammad wasilah dan keutamaan." },
   { judul: "14. Doa Istiftah", arab: "اللَّهُمَّ بَاعِدْ بَيْنِي وَبَيْنَ خَطَايَايَ كَمَا بَاعَدْتَ بَيْنَ الْمَشْرِقِ وَالْمَغْرِبِ", latin: "Allahumma baa'id bainii wa baina khathaayaaya kamaa baa'adta bainal masyriqi wal maghrib.", arti: "Ya Allah, jauhkanlah antara aku dan kesalahan-kesalahanku sebagaimana Engkau menjauhkan antara timur dan barat." },
   { judul: "15. Doa Ruku'", arab: "سُبْحَانَ رَبِّيَ الْعَظِيمِ", latin: "Subhaana rabbiyal 'azhiim.", arti: "Maha Suci Tuhanku Yang Maha Agung." },
   { judul: "16. Doa Bangkit Dari Ruku'", arab: "سَمِعَ اللهُ لِمَنْ حَمِدَهُ ... رَبَّنَا وَلَكَ الْحَمْدُ حَمْدًا كَثِيرًا طَيِّبًا مُبَارَكًا فِيهِ", latin: "Sami'allaahu liman hamidah ... Rabbanaa wa lakal hamdu hamdan katsiiran thayyiban mubaarakan fiih.", arti: "Allah Maha Mendengar orang yang memuji-Nya. Ya Tuhan kami, bagi-Mu segala puji, pujian yang banyak, baik, dan penuh berkah." },
   { judul: "17. Doa Sujud", arab: "سُبْحَانَ رَبِّيَ الْأَعْلَى", latin: "Subhaana rabbiyal a'laa.", arti: "Maha Suci Tuhanku Yang Maha Tinggi." },
   { judul: "18. Doa Duduk Di Antara Dua Sujud", arab: "رَبِّ اغْفِرْ لِي، رَبِّ اغْفِرْ لِي", latin: "Rabbighfir lii, Rabbighfir lii.", arti: "Ya Tuhanku ampunilah aku, Ya Tuhanku ampunilah aku." },
   { judul: "19. Bacaan Tasyahhud", arab: "التَّحِيَّاتُ لِلَّهِ وَالصَّلَوَاتُ وَالطَّيِّبَاتُ، السَّلَامُ عَلَيْكَ أَيُّهَا النَّبِيُّ وَرَحْمَةُ اللَّهِ وَبَرَكَاتُهُ", latin: "At-tahiyyaatu lillaahi wash-shalawaatu wath-thayyibaat, as-salaamu 'alaika ayyuhan-nabiyyu wa rahmatullaahi wa barakaatuh.", arti: "Segala penghormatan, shalawat, dan kebaikan hanya milik Allah. Semoga keselamatan tercurah kepadamu wahai Nabi, begitu juga rahmat Allah dan keberkahan-Nya." },
-  { judul: "20. Salawat Nabi Setelah Tasyahhud", arab: "اللَّهُمَّ صَلِّ عَلَى مُحَمَّدٍ وَعَلَى آلِ مُحَمَّدٍ، كَمَا صَلَّيْتَ عَلَى إِبْرَاهِيمَ وَعَلَى آلِ إِبْرَاهِيمَ", latin: "Allahumma shalli 'alaa Muhammad wa 'alaa aali Muhammad, kamaa shallaita 'alaa Ibraahiim wa 'alaa aali Ibraahiim.", arti: "Ya Allah, berilah shalawat kepada Muhammad dan keluarga Muhammad, sebagaimana Engkau telah memberi shalawat kepada Ibrahim dan keluarga Ibrahim." },
+  { judul: "20. Salawat Nabi", arab: "اللَّهُمَّ صَلِّ عَلَى مُحَمَّدٍ وَعَلَى آلِ مُحَمَّدٍ، كَمَا صَلَّيْتَ عَلَى إِبْرَاهِيمَ وَعَلَى آلِ إِبْرَاهِيمَ", latin: "Allahumma shalli 'alaa Muhammad wa 'alaa aali Muhammad, kamaa shallaita 'alaa Ibraahiim wa 'alaa aali Ibraahiim.", arti: "Ya Allah, berilah shalawat kepada Muhammad dan keluarga Muhammad, sebagaimana Engkau telah memberi shalawat kepada Ibrahim dan keluarga Ibrahim." },
   { judul: "21. Doa Setelah Tasyahhud Akhir", arab: "اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنْ عَذَابِ الْقَبْرِ، وَمِنْ عَذَابِ جَهَنَّمَ، وَمِنْ فِتْنَةِ الْمَحْيَا وَالْمَمَاتِ، وَمِنْ شَرِّ فِتْنَةِ الْمَسِيحِ الدَّجَّالِ", latin: "Allahumma inni a'udzu bika min 'adzabil qabri, wa min 'adzabi jahannama, wa min fitnatil mahyaa wal mamaati, wa min syarri fitnatil masiihid dajjaal.", arti: "Ya Allah, aku berlindung kepada-Mu dari siksa kubur, dari siksa neraka Jahanam, dari fitnah kehidupan dan kematian, dan dari keburukan fitnah Dajjal." },
-  { judul: "22. Dzikir Setelah Salam", arab: "أَسْتَغْفِرُ اللهَ (3x) اللَّهُمَّ أَنْتَ السَّلَامُ وَمِنْكَ السَّلَامُ، تَبَارَكْتَ يَا ذَا الْجَلَالِ وَالْإِكْرَامِ", latin: "Astaghfirullah (3x), Allahumma antas-salaam wa minkas-salaam, tabaarakta yaa dzal-jalaali wal-ikraam.", arti: "Aku memohon ampun kepada Allah (3x). Ya Allah, Engkau Mahasejahtera, dan dari-Mu kesejahteraan, Maha Suci Engkau wahai Tuhan pemilik keagungan dan kemuliaan." },
-  { judul: "23. Doa Qunut Salat Witir", arab: "اللَّهُمَّ اهْدِنِي فِيمَنْ هَدَيْتَ، وَعَافِنِي فِيمَنْ عَافَيْتَ، وَتَوَلَّنِي فِيمَنْ تَوَلَّيْتَ", latin: "Allahummahdinii fiiman hadait, wa 'aafinii fiiman 'aafait, wa tawallanii fiiman tawallait.", arti: "Ya Allah, berilah aku petunjuk sebagaimana orang-orang yang telah Engkau beri petunjuk, berilah aku keselamatan sebagaimana orang-orang yang telah Engkau beri keselamatan, dan uruslah aku sebagaimana orang-orang yang telah Engkau urus." },
+  { judul: "22. Dzikir Setelah Salam", arab: "أَسْتَغْفِرُ اللهَ (3x) اللَّهُمَّ أَنْتَ السَّلَامُ وَمِنْكَ السَّلَامُ، تَبَارَكْتَ يَا ذَا الْجَلَالِ وَالْإِكْرَامِ", latin: "Astaghfirullah (3x), Allahumma antas-salaam wa minkas-salaam, tabaarakta yaa dzal-jalaali wal-ikraam.", arti: "Aku memohon ampun kepada Allah (3x). Ya Allah, Engkau Mahasejahtera, dan dari-Mu kesejahteraan." },
+  { judul: "23. Doa Qunut Salat Witir", arab: "اللَّهُمَّ اهْدِنِي فِيمَنْ هَدَيْتَ، وَعَافِنِي فِيمَنْ عَافَيْتَ، وَتَوَلَّنِي فِيمَنْ تَوَلَّيْتَ", latin: "Allahummahdinii fiiman hadait, wa 'aafinii fiiman 'aafait, wa tawallanii fiiman tawallait.", arti: "Ya Allah, berilah aku petunjuk sebagaimana orang-orang yang telah Engkau beri petunjuk, berilah aku keselamatan sebagaimana orang-orang yang telah Engkau beri keselamatan." },
   { judul: "24. Doa Menjenguk Orang Sakit", arab: "لَا بَأْسَ طَهُورٌ إِنْ شَاءَ اللهُ", latin: "Laa ba'sa thahuurun insyaa-allaah.", arti: "Tidak mengapa, semoga sakitmu ini membuat dosamu bersih, Insya Allah." },
   { judul: "25. Doa Orang Yang Tertimpa Musibah", arab: "إِنَّا لِلَّهِ وَإِنَّا إِلَيْهِ رَاجِعُونَ، اللَّهُمَّ أْجُرْنِي فِي مُصِيبَتِي وَأَخْلِفْ لِي خَيْرًا مِنْهَا", latin: "Innaa lillaahi wa innaa ilaihi raaji'uun, Allahumma'jurnii fii mushiibatii wa akhlif lii khairan minhaa.", arti: "Sesungguhnya kami milik Allah dan kepada-Nya kami kembali. Ya Allah, berilah aku pahala dalam musibahku ini dan berilah aku ganti yang lebih baik darinya." },
   { judul: "26. Doa Berbuka Puasa", arab: "ذَهَبَ الظَّمَأُ وَابْتَلَّتِ الْعُرُوقُ، وَثَبَتَ الْأَجْرُ إِنْ شَاءَ اللهُ", latin: "Dzahabazh-zhama'u wabtallatil 'uruuqu wa tsabatal ajru insyaa-allaah.", arti: "Telah hilang dahaga, telah basah urat-urat, dan telah tetap pahala, Insya Allah." },
@@ -37,10 +37,9 @@ const DAFTAR_DOA = [
   { judul: "32. Doa Ketika Bersin", arab: "الْحَمْدُ لِلَّهِ", latin: "Alhamdu lillaah.", arti: "Segala puji bagi Allah." },
   { judul: "33. Doa Ketika Marah", arab: "أَعُوذُ بِاللهِ مِنَ الشَّيْطَانِ الرَّجِيمِ", latin: "A'udzu billaahi minasy-syaithaanir-rajiim.", arti: "Aku berlindung kepada Allah dari godaan setan yang terkutuk." },
   { judul: "34. Doa Naik Kendaraan", arab: "سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَذَا وَمَا كُنَّا لَهُ مُقْرِنِينَ وَإِنَّا إِلَى رَبِّنَا لَمُنْقَلِبُونَ", latin: "Subhaanal-ladzi sakhkhara lanaa hadzaa wa maa kunnaa lahu muqriniin, wa innaa ilaa rabbinaa lamunqalibuun.", arti: "Maha Suci Allah yang telah menundukkan semua ini bagi kami padahal kami sebelumnya tidak mampu menguasainya, dan sesungguhnya kami akan kembali kepada Tuhan kami." },
-  { judul: "35. Doa Masuk Pasar", arab: "لَا إِلَهَ إِلَّا اللهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، يُحْيِي وَيُمِيتُ وَهُوَ حَيٌّ لَا يَمُوتُ، بِيَدِهِ الْخَيْرُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ", latin: "Laa ilaaha illallaahu wahdahu laa syariika lah, lahul mulku wa lahul hamdu, yuhyii wa yumiitu wa huwa hayyun laa yamuut, biyadihil khairu, wa huwa 'alaa kulli syai-in qadiir.", arti: "Tidak ada Tuhan yang berhak disembah selain Allah semata, tiada sekutu bagi-Nya. Bagi-Nya kerajaan dan segala puji. Dia yang menghidupkan dan yang mematikan. Dia Maha Hidup dan tidak mati. Di tangan-Nya segala kebaikan dan Dia Maha Kuasa atas segala sesuatu." }
+  { judul: "35. Doa Masuk Pasar", arab: "لَا إِلَهَ إِلَّا اللهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، يُحْيِي وَيُمِيتُ وَهُوَ حَيٌّ لَا يَمُوتُ، بِيَدِهِ الْخَيْرُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ", latin: "Laa ilaaha illallaahu wahdahu laa syariika lah, lahul mulku wa lahul hamdu, yuhyii wa yumiitu wa huwa hayyun laa yamuut, biyadihil khairu, wa huwa 'alaa kulli syai-in qadiir.", arti: "Tidak ada Tuhan yang berhak disembah selain Allah semata, tiada sekutu bagi-Nya. Bagi-Nya kerajaan dan segala puji." }
 ];
 
-// --- KONFIGURASI TEMA WARNA ---
 const THEMES = {
   emerald: { id: 'emerald', name: 'Hijau Eden', bg: 'bg-emerald-50', header: 'bg-emerald-600', text: 'text-emerald-800', textLight: 'text-emerald-600', border: 'border-emerald-500', accent: 'emerald', secondary: 'orange', btnGradient: 'from-orange-400 to-orange-500' },
   blue: { id: 'blue', name: 'Biru Langit', bg: 'bg-blue-50', header: 'bg-blue-600', text: 'text-blue-800', textLight: 'text-blue-600', border: 'border-blue-500', accent: 'blue', secondary: 'yellow', btnGradient: 'from-blue-500 to-indigo-600' },
@@ -62,7 +61,7 @@ const getGregorianDate = (startDate, dayIndex) => {
   return formatDate(date);
 };
 
-// --- FUNGSI KOMPRESI GAMBAR (TETAP ADA AGAR TIDAK CRASH) ---
+// --- FUNGSI KOMPRESI GAMBAR ---
 const compressImage = (file) => {
   return new Promise((resolve) => {
     const reader = new FileReader();
@@ -72,7 +71,7 @@ const compressImage = (file) => {
       img.src = event.target.result;
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 800; // Resize agar ringan
+        const MAX_WIDTH = 800; 
         const scaleSize = MAX_WIDTH / img.width;
         
         const newWidth = (scaleSize < 1) ? MAX_WIDTH : img.width;
@@ -173,7 +172,6 @@ export default function App() {
     if (file) {
       setIsCompressing(true);
       setSelectedImage(file.name);
-      
       try {
         const compressedBase64 = await compressImage(file);
         setBase64Image(compressedBase64);
@@ -285,7 +283,6 @@ export default function App() {
   const currentData = userData[activeDay] || {};
   const totalScore = calculateTotalScore();
   const currentDateGregorian = getGregorianDate(studentProfile.startDateRamadan, activeDay);
-  const isLast10Days = activeDay >= 21;
 
   // --- RENDER HALAMAN ---
 
@@ -356,15 +353,24 @@ export default function App() {
   // 2. HALAMAN UTAMA (JURNAL, LAPOR, DOA)
   return (
     <div className={`min-h-screen ${currentTheme.bg} font-sans text-slate-800 pb-20`}>
-      <div className={`${currentTheme.header} text-white p-5 pb-8 rounded-b-3xl shadow-lg sticky top-0 z-20`}>
-        <div className="flex justify-between items-center">
+      {/* HEADER: Ubah dari sticky menjadi relative agar ikut scroll */}
+      <div className={`${currentTheme.header} text-white p-5 pb-8 rounded-b-3xl shadow-lg relative z-10`}>
+        <div className="flex justify-between items-center mb-3">
           <div>
             <h1 className="font-bold text-lg">{studentProfile.name || 'Siswa'}</h1>
-            <p className="text-xs opacity-90">{studentProfile.class} • Total Poin: {totalScore}</p>
+            <p className="text-xs opacity-90">{studentProfile.class}</p>
           </div>
           <div className="bg-white/20 p-2 rounded-lg">
              <Star className="text-yellow-300 fill-yellow-300" size={20} />
           </div>
+        </div>
+        
+        <div className="bg-yellow-400 text-yellow-900 p-3 rounded-2xl shadow-lg border-b-4 border-yellow-600 flex flex-col items-center transform scale-100 transition-transform">
+           <div className="flex items-center gap-2">
+              <Trophy size={24} className="fill-yellow-100 text-yellow-800" />
+              <span className="text-xs font-bold uppercase tracking-widest text-yellow-800">Total Poin</span>
+           </div>
+           <span className="text-4xl font-black mt-1 leading-none">{totalScore}</span>
         </div>
       </div>
 
@@ -389,32 +395,32 @@ export default function App() {
 
             {currentData.validated && <div className="bg-green-100 text-green-700 p-2 rounded-lg text-xs font-bold text-center">✅ Data sudah divalidasi</div>}
 
-            {/* --- KARTU PUASA SPESIAL (DESAIN BARU) --- */}
+            {/* --- KARTU PUASA SPESIAL (DESAIN LEBIH KONTRAS) --- */}
             <div 
                 onClick={() => !currentData.validated && toggleCheck(activeDay, 'puasa')} 
                 className={`
                     relative overflow-hidden p-5 rounded-3xl border-2 cursor-pointer transition-all duration-300 ease-out group shadow-sm
                     ${currentData.puasa 
-                        ? `bg-gradient-to-br from-${currentTheme.secondary}-50 to-white border-${currentTheme.secondary}-400 shadow-${currentTheme.secondary}-100 scale-[1.02]` 
+                        ? `bg-gradient-to-br from-orange-400 to-yellow-500 border-orange-600 shadow-lg` 
                         : 'bg-white border-slate-200 hover:border-slate-300'
                     }
                 `}
             >
                 {currentData.puasa && (
-                    <div className={`absolute -right-5 -top-5 w-24 h-24 bg-${currentTheme.secondary}-200 rounded-full blur-2xl opacity-50 pointer-events-none`}></div>
+                    <div className="absolute -right-5 -top-5 w-24 h-24 bg-white opacity-20 rounded-full blur-2xl pointer-events-none"></div>
                 )}
                 <div className="flex items-center justify-between relative z-10">
                     <div className="flex items-center gap-4">
-                        <div className={`p-3 rounded-2xl transition-all duration-300 ${currentData.puasa ? `bg-${currentTheme.secondary}-500 text-white shadow-md shadow-${currentTheme.secondary}-200` : 'bg-slate-100 text-slate-400'}`}>
-                           <Sun size={28} className={currentData.puasa ? 'animate-spin-slow' : ''} />
+                        <div className={`p-3 rounded-2xl transition-all duration-300 ${currentData.puasa ? 'bg-white text-orange-500 shadow-md' : 'bg-slate-100 text-slate-400'}`}>
+                           <Sun size={28} className={currentData.puasa ? 'animate-spin-slow fill-orange-500' : ''} />
                         </div>
                         <div>
-                           <h3 className={`font-bold text-lg leading-tight ${currentData.puasa ? `text-${currentTheme.secondary}-700` : 'text-slate-600'}`}>Puasa Penuh</h3>
-                           <p className={`text-xs font-medium mt-1 ${currentData.puasa ? `text-${currentTheme.secondary}-600` : 'text-slate-400'}`}>{currentData.puasa ? 'Alhamdulillah! (+20 Poin)' : 'Klik jika berpuasa hari ini'}</p>
+                           <h3 className={`font-bold text-lg leading-tight ${currentData.puasa ? 'text-white' : 'text-slate-600'}`}>Puasa Penuh</h3>
+                           <p className={`text-xs font-medium mt-1 ${currentData.puasa ? 'text-orange-100' : 'text-slate-400'}`}>{currentData.puasa ? 'Alhamdulillah! (+20 Poin)' : 'Klik jika berpuasa hari ini'}</p>
                         </div>
                     </div>
-                    <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${currentData.puasa ? `bg-${currentTheme.secondary}-500 border-${currentTheme.secondary}-500 rotate-0` : 'border-slate-200 bg-slate-50 -rotate-12'}`}>
-                        {currentData.puasa && <CheckCircle size={20} className="text-white" />}
+                    <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${currentData.puasa ? 'bg-white border-white rotate-0' : 'border-slate-200 bg-slate-50 -rotate-12'}`}>
+                        {currentData.puasa && <CheckCircle size={20} className="text-orange-500" />}
                     </div>
                 </div>
             </div>
@@ -430,7 +436,7 @@ export default function App() {
                </div>
             </div>
 
-             {/* Amalan Penting: Salat Malam (KEMBALI!) */}
+             {/* Amalan Penting: Salat Malam */}
              <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] p-4 rounded-3xl shadow-lg border border-indigo-900 relative overflow-hidden text-white">
                 <div className="absolute top-2 right-4 opacity-30"><Star size={10} className="fill-white" /></div>
                 <div className="absolute bottom-4 left-4 opacity-20"><Star size={14} className="fill-white" /></div>
@@ -456,7 +462,7 @@ export default function App() {
                ))}
             </div>
 
-            {/* KEGIATAN POSITIF LENGKAP (KEMBALI!) */}
+            {/* KEGIATAN POSITIF LENGKAP */}
             <div className={`bg-gradient-to-br from-white to-${currentTheme.accent}-50 p-5 rounded-3xl shadow-sm border border-${currentTheme.accent}-100 space-y-3`}>
                <h3 className={`font-bold text-sm ${currentTheme.textLight} flex items-center gap-2`}><Heart size={16} /> Kegiatan Positif</h3>
                
@@ -533,7 +539,7 @@ export default function App() {
            </div>
         )}
         
-        {/* --- VIEW: DOA (LENGKAP 35 DOA) --- */}
+        {/* --- VIEW: DOA (CLEAN VERSION) --- */}
         {view === 'doa' && (
            <div className="space-y-3 pb-10">
              {DAFTAR_DOA.map((doa, i) => (
