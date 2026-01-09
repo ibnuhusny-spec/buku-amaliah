@@ -666,7 +666,14 @@ export default function App() {
             {/* Ibadah Wajib Section */}
             <div className="space-y-3">
                {/* Puasa */}
-              <div className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 relative overflow-hidden">
+              <div 
+                onClick={() => !currentData.validated && toggleCheck(activeDay, 'puasa')}
+                className={`p-4 rounded-3xl shadow-sm border relative overflow-hidden transition-all cursor-pointer ${
+                  currentData.puasa 
+                    ? `bg-${currentTheme.secondary}-50 border-${currentTheme.secondary}-200` 
+                    : 'bg-white border-slate-100 hover:bg-slate-50'
+                }`}
+              >
                 <div className={`absolute top-0 left-0 w-1.5 h-full transition-colors ${currentData.puasa ? `bg-${currentTheme.secondary}-500` : 'bg-slate-200'}`}></div>
                 <div className="flex justify-between items-center pl-3">
                   <div className="flex items-center gap-4">
@@ -679,8 +686,7 @@ export default function App() {
                     </div>
                   </div>
                   <div 
-                      onClick={() => !currentData.validated && toggleCheck(activeDay, 'puasa')}
-                      className={`w-8 h-8 rounded-full border-2 flex items-center justify-center cursor-pointer transition-all ${currentData.puasa ? `bg-${currentTheme.secondary}-500 border-${currentTheme.secondary}-500 scale-110` : `border-slate-300 bg-white hover:border-${currentTheme.secondary}-300`}`}
+                      className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${currentData.puasa ? `bg-${currentTheme.secondary}-500 border-${currentTheme.secondary}-500 scale-110` : `border-slate-300 bg-white group-hover:border-${currentTheme.secondary}-300`}`}
                   >
                       {currentData.puasa && <CheckCircle size={18} className="text-white" />}
                   </div>
