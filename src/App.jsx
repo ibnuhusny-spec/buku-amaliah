@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Star, Moon, Sun, BookOpen, CheckCircle, Award, ChevronLeft, ChevronRight, User, Settings, Camera, X, Heart, MessageCircle, List, Trophy, AlertTriangle, Loader2, ArrowRight, Image as ImageIcon } from 'lucide-react';
+import { Star, Moon, Sun, BookOpen, CheckCircle, Award, ChevronLeft, ChevronRight, User, Settings, Camera, X, Heart, MessageCircle, List, Trophy, AlertTriangle, Loader2, ArrowRight } from 'lucide-react';
 
 // --- DATA: KOLEKSI DOA (HISNUL MUSLIM VERIFIED) ---
 const DAFTAR_DOA = [
@@ -92,7 +92,6 @@ export default function App() {
     name: '', 
     class: '', 
     scriptUrl: '', 
-    logoUrl: '', // LOGO URL DISIMPAN DI SINI
     startDateRamadan: '2026-02-18', 
     schoolName: 'Sekolah Dasar Islam Terpadu', 
     theme: 'emerald' 
@@ -105,22 +104,12 @@ export default function App() {
   const [selectedImage, setSelectedImage] = useState(null);
   const [base64Image, setBase64Image] = useState("");
   const [isCompressing, setIsCompressing] = useState(false);
+  
+  // STATE BARU: Untuk mengecek apakah logo lokal ada atau tidak
+  const [logoError, setLogoError] = useState(false);
 
   const currentTheme = THEMES[studentProfile.theme] || THEMES.emerald;
   const isScriptUrlValid = (url) => { if (!url) return false; return url.includes('script.google.com') && url.endsWith('/exec'); };
-
-  // --- HELPER UNTUK MEMPERBAIKI LINK GOOGLE DRIVE ---
-  const getProcessedLogoUrl = (url) => {
-    if (!url) return '';
-    // Jika link Google Drive biasa (file/d/...), ubah jadi link export view
-    if (url.includes('drive.google.com') && url.includes('/file/d/')) {
-        const idMatch = url.match(/\/d\/(.*?)(?:\/|$)/);
-        if (idMatch && idMatch[1]) {
-            return `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
-        }
-    }
-    return url;
-  };
 
   useEffect(() => {
     const savedData = localStorage.getItem('ramadanJournalData');
@@ -203,19 +192,8 @@ export default function App() {
               <div className="space-y-4">
                 <div><label className="text-xs font-bold text-slate-500 mb-1 block">Nama Sekolah</label><input type="text" className="w-full p-2 border rounded-lg text-sm" value={studentProfile.schoolName} onChange={(e) => setStudentProfile(prev => ({...prev, schoolName: e.target.value}))} /></div>
                 
-                {/* --- INPUT LOGO SEKOLAH --- */}
-                <div>
-                  <label className="text-xs font-bold text-slate-500 mb-1 block flex items-center gap-1"><ImageIcon size={12}/> Link Logo Sekolah (Opsional)</label>
-                  <input 
-                    type="text" 
-                    className="w-full p-2 border rounded-lg text-xs font-mono" 
-                    placeholder="https://... (Link Gambar Logo)" 
-                    value={studentProfile.logoUrl || ''} 
-                    onChange={(e) => setStudentProfile(prev => ({...prev, logoUrl: e.target.value}))} 
-                  />
-                  <p className="text-[9px] text-slate-400 mt-1">Bisa pakai Link Google Drive (Pastikan setting: Anyone with link)</p>
-                </div>
-
+                {/* --- HAPUS INPUT LOGO URL (Karena pakai file lokal) --- */}
+                
                 <div><label className="text-xs font-bold text-slate-500 mb-2 block">Pilih Tema</label><div className="flex gap-2 justify-center flex-wrap">{Object.values(THEMES).map((t) => (<button key={t.id} onClick={() => setStudentProfile(prev => ({...prev, theme: t.id}))} className={`w-8 h-8 rounded-full border-2 ${t.header} ${studentProfile.theme === t.id ? 'ring-2 ring-slate-400 border-white' : 'border-transparent'}`} />))}</div></div>
                 <div><label className="text-xs font-bold text-slate-500 mb-1 block">Link Script Guru (Harus berakhiran /exec)</label><input type="text" className={`w-full p-2 border rounded-lg text-xs ${studentProfile.scriptUrl && !isScriptUrlValid(studentProfile.scriptUrl) ? 'border-red-500 bg-red-50 text-red-600' : ''}`} placeholder="https://script.google.com/.../exec" value={studentProfile.scriptUrl} onChange={(e) => setStudentProfile(prev => ({...prev, scriptUrl: e.target.value}))} />{studentProfile.scriptUrl && !isScriptUrlValid(studentProfile.scriptUrl) && (<p className="text-[10px] text-red-500 mt-1 flex items-center gap-1"><AlertTriangle size={10} /> Link sepertinya salah.</p>)}</div>
                 <button onClick={() => setShowSettings(false)} className={`w-full ${currentTheme.header} text-white py-2 rounded-lg font-bold`}>Simpan</button>
@@ -226,24 +204,19 @@ export default function App() {
         <div className={`bg-white max-w-sm w-full rounded-3xl shadow-2xl overflow-hidden border-4 ${currentTheme.border} relative pb-8`}>
           <div className={`absolute top-0 left-0 w-full h-40 ${currentTheme.header} rounded-b-[50%] z-0`}></div>
           <div className="relative z-10 p-6 flex flex-col items-center text-center mt-4">
-            {/* LOGO SEKOLAH DENGAN FALLBACK & AUTO-FIX DRIVE URL */}
+            
+            {/* LOGO SEKOLAH DARI PUBLIC/LOGO.PNG */}
             <div className={`bg-white p-3 rounded-full shadow-xl mb-4 w-32 h-32 flex items-center justify-center border-4 border-${currentTheme.secondary}-400 overflow-hidden`}>
-               {studentProfile.logoUrl ? (
+               {!logoError ? (
                  <img 
-                   src={getProcessedLogoUrl(studentProfile.logoUrl)} 
+                   src="/logo.png" 
                    alt="Logo Sekolah" 
                    className="w-full h-full object-contain"
-                   onError={(e) => {
-                     e.target.style.display = 'none'; // Sembunyikan gambar jika error
-                     e.target.nextSibling.style.display = 'block'; // Tampilkan ikon buku
-                   }}
+                   onError={() => setLogoError(true)} // Jika logo.png tidak ada, switch ke ikon
                  />
-               ) : null}
-               <BookOpen 
-                 size={48} 
-                 className={currentTheme.text} 
-                 style={{display: studentProfile.logoUrl ? 'none' : 'block'}} 
-               />
+               ) : (
+                 <BookOpen size={48} className={currentTheme.text} />
+               )}
             </div>
 
             <h1 className={`text-2xl font-bold ${currentTheme.text} font-serif leading-tight mb-2`}>Buku Amaliah<br/>Ramadan</h1>
