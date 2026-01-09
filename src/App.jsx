@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Star, Moon, Sun, BookOpen, CheckCircle, Award, ChevronLeft, ChevronRight, User, Settings, Camera, X, Heart, MessageCircle, List, Trophy, AlertTriangle, Loader2, ArrowRight } from 'lucide-react';
+import { Star, Moon, Sun, BookOpen, CheckCircle, Award, ChevronLeft, ChevronRight, User, Settings, Camera, X, Heart, MessageCircle, List, Trophy, AlertTriangle, Loader2, ArrowRight, Image as ImageIcon } from 'lucide-react';
 
 // --- DATA: KOLEKSI DOA (HISNUL MUSLIM VERIFIED) ---
 const DAFTAR_DOA = [
@@ -88,7 +88,15 @@ const compressImage = (file) => {
 export default function App() {
   const [activeDay, setActiveDay] = useState(1);
   const [userData, setUserData] = useState({});
-  const [studentProfile, setStudentProfile] = useState({ name: '', class: '', scriptUrl: '', startDateRamadan: '2026-02-18', schoolName: 'Sekolah Dasar Islam Terpadu', theme: 'emerald' });
+  const [studentProfile, setStudentProfile] = useState({ 
+    name: '', 
+    class: '', 
+    scriptUrl: '', 
+    logoUrl: '', // LOGO URL DISIMPAN DI SINI
+    startDateRamadan: '2026-02-18', 
+    schoolName: 'Sekolah Dasar Islam Terpadu', 
+    theme: 'emerald' 
+  });
   const [showConfetti, setShowConfetti] = useState(false);
   const [view, setView] = useState('cover'); 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -100,6 +108,19 @@ export default function App() {
 
   const currentTheme = THEMES[studentProfile.theme] || THEMES.emerald;
   const isScriptUrlValid = (url) => { if (!url) return false; return url.includes('script.google.com') && url.endsWith('/exec'); };
+
+  // --- HELPER UNTUK MEMPERBAIKI LINK GOOGLE DRIVE ---
+  const getProcessedLogoUrl = (url) => {
+    if (!url) return '';
+    // Jika link Google Drive biasa (file/d/...), ubah jadi link export view
+    if (url.includes('drive.google.com') && url.includes('/file/d/')) {
+        const idMatch = url.match(/\/d\/(.*?)(?:\/|$)/);
+        if (idMatch && idMatch[1]) {
+            return `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
+        }
+    }
+    return url;
+  };
 
   useEffect(() => {
     const savedData = localStorage.getItem('ramadanJournalData');
@@ -181,6 +202,20 @@ export default function App() {
               <div className="flex justify-between items-center mb-4"><h3 className="font-bold text-lg text-slate-700">Pengaturan</h3><button onClick={() => setShowSettings(false)}><X size={24} className="text-slate-400" /></button></div>
               <div className="space-y-4">
                 <div><label className="text-xs font-bold text-slate-500 mb-1 block">Nama Sekolah</label><input type="text" className="w-full p-2 border rounded-lg text-sm" value={studentProfile.schoolName} onChange={(e) => setStudentProfile(prev => ({...prev, schoolName: e.target.value}))} /></div>
+                
+                {/* --- INPUT LOGO SEKOLAH --- */}
+                <div>
+                  <label className="text-xs font-bold text-slate-500 mb-1 block flex items-center gap-1"><ImageIcon size={12}/> Link Logo Sekolah (Opsional)</label>
+                  <input 
+                    type="text" 
+                    className="w-full p-2 border rounded-lg text-xs font-mono" 
+                    placeholder="https://... (Link Gambar Logo)" 
+                    value={studentProfile.logoUrl || ''} 
+                    onChange={(e) => setStudentProfile(prev => ({...prev, logoUrl: e.target.value}))} 
+                  />
+                  <p className="text-[9px] text-slate-400 mt-1">Bisa pakai Link Google Drive (Pastikan setting: Anyone with link)</p>
+                </div>
+
                 <div><label className="text-xs font-bold text-slate-500 mb-2 block">Pilih Tema</label><div className="flex gap-2 justify-center flex-wrap">{Object.values(THEMES).map((t) => (<button key={t.id} onClick={() => setStudentProfile(prev => ({...prev, theme: t.id}))} className={`w-8 h-8 rounded-full border-2 ${t.header} ${studentProfile.theme === t.id ? 'ring-2 ring-slate-400 border-white' : 'border-transparent'}`} />))}</div></div>
                 <div><label className="text-xs font-bold text-slate-500 mb-1 block">Link Script Guru (Harus berakhiran /exec)</label><input type="text" className={`w-full p-2 border rounded-lg text-xs ${studentProfile.scriptUrl && !isScriptUrlValid(studentProfile.scriptUrl) ? 'border-red-500 bg-red-50 text-red-600' : ''}`} placeholder="https://script.google.com/.../exec" value={studentProfile.scriptUrl} onChange={(e) => setStudentProfile(prev => ({...prev, scriptUrl: e.target.value}))} />{studentProfile.scriptUrl && !isScriptUrlValid(studentProfile.scriptUrl) && (<p className="text-[10px] text-red-500 mt-1 flex items-center gap-1"><AlertTriangle size={10} /> Link sepertinya salah.</p>)}</div>
                 <button onClick={() => setShowSettings(false)} className={`w-full ${currentTheme.header} text-white py-2 rounded-lg font-bold`}>Simpan</button>
@@ -191,7 +226,26 @@ export default function App() {
         <div className={`bg-white max-w-sm w-full rounded-3xl shadow-2xl overflow-hidden border-4 ${currentTheme.border} relative pb-8`}>
           <div className={`absolute top-0 left-0 w-full h-40 ${currentTheme.header} rounded-b-[50%] z-0`}></div>
           <div className="relative z-10 p-6 flex flex-col items-center text-center mt-4">
-            <div className={`bg-white p-3 rounded-full shadow-xl mb-4 w-28 h-28 flex items-center justify-center border-4 border-${currentTheme.secondary}-400`}><BookOpen size={48} className={currentTheme.text} /></div>
+            {/* LOGO SEKOLAH DENGAN FALLBACK & AUTO-FIX DRIVE URL */}
+            <div className={`bg-white p-3 rounded-full shadow-xl mb-4 w-32 h-32 flex items-center justify-center border-4 border-${currentTheme.secondary}-400 overflow-hidden`}>
+               {studentProfile.logoUrl ? (
+                 <img 
+                   src={getProcessedLogoUrl(studentProfile.logoUrl)} 
+                   alt="Logo Sekolah" 
+                   className="w-full h-full object-contain"
+                   onError={(e) => {
+                     e.target.style.display = 'none'; // Sembunyikan gambar jika error
+                     e.target.nextSibling.style.display = 'block'; // Tampilkan ikon buku
+                   }}
+                 />
+               ) : null}
+               <BookOpen 
+                 size={48} 
+                 className={currentTheme.text} 
+                 style={{display: studentProfile.logoUrl ? 'none' : 'block'}} 
+               />
+            </div>
+
             <h1 className={`text-2xl font-bold ${currentTheme.text} font-serif leading-tight mb-2`}>Buku Amaliah<br/>Ramadan</h1>
             <h2 className="text-xs font-semibold text-white/90 bg-black/20 px-3 py-1 rounded-full mb-6">1446 H</h2>
             <div className="w-full space-y-3 mb-6">
@@ -199,8 +253,8 @@ export default function App() {
               <input type="text" className="w-full p-3 border rounded-xl bg-slate-50 text-center font-bold text-slate-700" placeholder="Kelas" value={studentProfile.class} onChange={(e) => setStudentProfile(prev => ({ ...prev, class: e.target.value }))} />
             </div>
             <button onClick={startBook} className={`w-full bg-gradient-to-r ${currentTheme.btnGradient} text-white font-bold py-3 rounded-xl shadow-lg flex items-center justify-center gap-2`}>Mulai <ArrowRight size={18} /></button>
+            <p className="mt-4 text-xs font-bold text-slate-400 uppercase tracking-widest">{studentProfile.schoolName}</p>
           </div>
-          {/* VERSI CHECKER DI FOOTER */}
           <div className="absolute bottom-2 left-0 w-full text-center">
              <span className="text-[10px] text-slate-400 font-mono">Versi Final 2.0 (Bersih)</span>
           </div>
