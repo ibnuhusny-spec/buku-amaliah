@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Star, Moon, Sun, BookOpen, CheckCircle, Award, ChevronLeft, ChevronRight, User, Settings, Camera, X, Heart, MessageCircle, List, Trophy, AlertTriangle, Loader2, ArrowRight } from 'lucide-react';
+import { Star, Moon, Sun, BookOpen, CheckCircle, Award, ChevronLeft, ChevronRight, User, Settings, Camera, X, Heart, MessageCircle, List, Trophy, AlertTriangle, Loader2, ArrowRight, Share2, Copy, Link as LinkIcon, Image as ImageIcon } from 'lucide-react';
 
 // --- DATA: KOLEKSI DOA (HISNUL MUSLIM VERIFIED) ---
 const DAFTAR_DOA = [
@@ -104,14 +104,45 @@ export default function App() {
   const [selectedImage, setSelectedImage] = useState(null);
   const [base64Image, setBase64Image] = useState("");
   const [isCompressing, setIsCompressing] = useState(false);
-  
-  // STATE BARU: Untuk mengecek apakah logo lokal ada atau tidak
   const [logoError, setLogoError] = useState(false);
+  const [shareLinkCopied, setShareLinkCopied] = useState(false);
 
   const currentTheme = THEMES[studentProfile.theme] || THEMES.emerald;
   const isScriptUrlValid = (url) => { if (!url) return false; return url.includes('script.google.com') && url.endsWith('/exec'); };
 
+  // --- HELPER UNTUK MEMPERBAIKI LINK GOOGLE DRIVE ---
+  const getProcessedLogoUrl = (url) => {
+    if (!url) return '';
+    if (url.includes('drive.google.com') && url.includes('/file/d/')) {
+        const idMatch = url.match(/\/d\/(.*?)(?:\/|$)/);
+        if (idMatch && idMatch[1]) {
+            return `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
+        }
+    }
+    return url;
+  };
+
   useEffect(() => {
+    // --- FITUR AUTO-CONFIG UNTUK SISWA ---
+    const params = new URLSearchParams(window.location.search);
+    const guruScript = params.get('guru');
+    
+    if (guruScript) {
+      try {
+        if (isScriptUrlValid(guruScript)) {
+          setStudentProfile(prev => {
+            const newProfile = { ...prev, scriptUrl: guruScript };
+            localStorage.setItem('ramadanProfile', JSON.stringify(newProfile));
+            return newProfile;
+          });
+          window.history.replaceState({}, document.title, window.location.pathname);
+          alert("✅ Aplikasi berhasil terhubung ke Kelas Guru Anda!");
+        }
+      } catch (e) {
+        console.error("Gagal memproses link guru");
+      }
+    }
+
     const savedData = localStorage.getItem('ramadanJournalData');
     const savedProfile = localStorage.getItem('ramadanProfile');
     if (savedData) {
@@ -130,7 +161,11 @@ export default function App() {
       }
       setUserData(initialData);
     }
-    if (savedProfile) setStudentProfile(JSON.parse(savedProfile));
+    if (savedProfile) {
+       if (!guruScript) {
+         setStudentProfile(JSON.parse(savedProfile));
+       }
+    }
   }, []);
 
   useEffect(() => { if (Object.keys(userData).length > 0) localStorage.setItem('ramadanJournalData', JSON.stringify(userData)); }, [userData]);
@@ -142,6 +177,38 @@ export default function App() {
   const triggerConfetti = () => { setShowConfetti(true); setTimeout(() => setShowConfetti(false), 3000); };
   const handleImageUpload = async (e) => { const file = e.target.files[0]; if (file) { setIsCompressing(true); setSelectedImage(file.name); try { const compressedBase64 = await compressImage(file); setBase64Image(compressedBase64); } catch (error) { alert("Gagal memproses gambar."); } finally { setIsCompressing(false); } } };
   const removeImage = () => { setSelectedImage(null); setBase64Image(""); };
+
+  // --- GENERATE LINK UNTUK GURU ---
+  const generateShareLink = () => {
+    if (!studentProfile.scriptUrl) return "";
+    const baseUrl = window.location.origin + window.location.pathname;
+    const encodedScript = encodeURIComponent(studentProfile.scriptUrl);
+    return `${baseUrl}?guru=${encodedScript}`;
+  };
+
+  const copyShareLink = () => {
+    const link = generateShareLink();
+    if (link) {
+      // Gunakan textarea sementara untuk kompatibilitas iframe/browser lama
+      const textArea = document.createElement("textarea");
+      textArea.value = link;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-9999px';
+      document.body.appendChild(textArea);
+      textArea.select();
+      
+      try {
+        document.execCommand('copy'); // Metode klasik yang lebih stabil di iframe
+        setShareLinkCopied(true);
+        setTimeout(() => setShareLinkCopied(false), 3000);
+      } catch (err) {
+        console.error('Gagal menyalin:', err);
+        alert('Gagal menyalin otomatis. Silakan salin manual.');
+      }
+      
+      document.body.removeChild(textArea);
+    }
+  };
 
   const calculateDailyScore = (dayData, dayNum) => {
     let score = 0; if (!dayData) return 0;
@@ -192,11 +259,40 @@ export default function App() {
               <div className="space-y-4">
                 <div><label className="text-xs font-bold text-slate-500 mb-1 block">Nama Sekolah</label><input type="text" className="w-full p-2 border rounded-lg text-sm" value={studentProfile.schoolName} onChange={(e) => setStudentProfile(prev => ({...prev, schoolName: e.target.value}))} /></div>
                 
-                {/* --- HAPUS INPUT LOGO URL (Karena pakai file lokal) --- */}
-                
+                {/* --- INPUT LOGO SEKOLAH --- */}
+                <div>
+                  <label className="text-xs font-bold text-slate-500 mb-1 block flex items-center gap-1"><ImageIcon size={12}/> Link Logo Sekolah (Opsional)</label>
+                  <input 
+                    type="text" 
+                    className="w-full p-2 border rounded-lg text-xs font-mono" 
+                    placeholder="https://... (Link Gambar Logo)" 
+                    value={studentProfile.logoUrl || ''} 
+                    onChange={(e) => setStudentProfile(prev => ({...prev, logoUrl: e.target.value}))} 
+                  />
+                  <p className="text-[9px] text-slate-400 mt-1">Bisa pakai Link Google Drive (Pastikan setting: Anyone with link)</p>
+                </div>
+
                 <div><label className="text-xs font-bold text-slate-500 mb-2 block">Pilih Tema</label><div className="flex gap-2 justify-center flex-wrap">{Object.values(THEMES).map((t) => (<button key={t.id} onClick={() => setStudentProfile(prev => ({...prev, theme: t.id}))} className={`w-8 h-8 rounded-full border-2 ${t.header} ${studentProfile.theme === t.id ? 'ring-2 ring-slate-400 border-white' : 'border-transparent'}`} />))}</div></div>
                 <div><label className="text-xs font-bold text-slate-500 mb-1 block">Link Script Guru (Harus berakhiran /exec)</label><input type="text" className={`w-full p-2 border rounded-lg text-xs ${studentProfile.scriptUrl && !isScriptUrlValid(studentProfile.scriptUrl) ? 'border-red-500 bg-red-50 text-red-600' : ''}`} placeholder="https://script.google.com/.../exec" value={studentProfile.scriptUrl} onChange={(e) => setStudentProfile(prev => ({...prev, scriptUrl: e.target.value}))} />{studentProfile.scriptUrl && !isScriptUrlValid(studentProfile.scriptUrl) && (<p className="text-[10px] text-red-500 mt-1 flex items-center gap-1"><AlertTriangle size={10} /> Link sepertinya salah.</p>)}</div>
-                <button onClick={() => setShowSettings(false)} className={`w-full ${currentTheme.header} text-white py-2 rounded-lg font-bold`}>Simpan</button>
+                
+                {/* --- BAGIAN KHUSUS GURU: SHARE LINK --- */}
+                {isScriptUrlValid(studentProfile.scriptUrl) && (
+                  <div className="bg-blue-50 border border-blue-200 p-3 rounded-xl mt-4">
+                    <h4 className="text-xs font-bold text-blue-700 flex items-center gap-2 mb-2"><Share2 size={12}/> Bagikan ke Siswa</h4>
+                    <p className="text-[10px] text-slate-500 mb-2">
+                      ⚠️ <strong>PENTING:</strong> Pastikan Anda menyalin link ini dari <strong>Website Utama (Vercel)</strong>, bukan dari mode Preview/Editor.
+                    </p>
+                    <div className="flex gap-2">
+                      <input readOnly type="text" className="w-full text-[10px] p-2 rounded border bg-white text-slate-500" value={generateShareLink()} />
+                      <button onClick={copyShareLink} className="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 transition">
+                        {shareLinkCopied ? <CheckCircle size={16}/> : <Copy size={16}/>}
+                      </button>
+                    </div>
+                    {shareLinkCopied && <p className="text-[10px] text-green-600 mt-1 text-center font-bold">Link tersalin!</p>}
+                  </div>
+                )}
+
+                <button onClick={() => setShowSettings(false)} className={`w-full mt-2 ${currentTheme.header} text-white py-2 rounded-lg font-bold`}>Simpan</button>
               </div>
             </div>
           </div>
@@ -205,16 +301,32 @@ export default function App() {
           <div className={`absolute top-0 left-0 w-full h-40 ${currentTheme.header} rounded-b-[50%] z-0`}></div>
           <div className="relative z-10 p-6 flex flex-col items-center text-center mt-4">
             
-            {/* LOGO SEKOLAH DARI PUBLIC/LOGO.PNG */}
+            {/* LOGO SEKOLAH DENGAN FALLBACK & AUTO-FIX DRIVE URL */}
             <div className={`bg-white p-3 rounded-full shadow-xl mb-4 w-32 h-32 flex items-center justify-center border-4 border-${currentTheme.secondary}-400 overflow-hidden`}>
-               {!logoError ? (
+               {studentProfile.logoUrl || !logoError ? (
                  <img 
-                   src="/logo.png" 
+                   src={studentProfile.logoUrl ? getProcessedLogoUrl(studentProfile.logoUrl) : "/logo.png"} 
                    alt="Logo Sekolah" 
                    className="w-full h-full object-contain"
-                   onError={() => setLogoError(true)} // Jika logo.png tidak ada, switch ke ikon
+                   onError={(e) => {
+                     // Jika pakai logoUrl gagal, coba /logo.png lokal
+                     if (studentProfile.logoUrl) {
+                        e.target.src = "/logo.png";
+                        // Jika lokal juga gagal (logoError), sembunyikan gambar
+                        e.target.onerror = () => {
+                           setLogoError(true);
+                           e.target.style.display = 'none';
+                        };
+                     } else {
+                        setLogoError(true);
+                        e.target.style.display = 'none';
+                     }
+                   }}
                  />
-               ) : (
+               ) : null}
+               
+               {/* Fallback ke Ikon Buku jika semua gambar gagal */}
+               {logoError && !studentProfile.logoUrl && (
                  <BookOpen size={48} className={currentTheme.text} />
                )}
             </div>
