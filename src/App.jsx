@@ -111,6 +111,18 @@ export default function App() {
   const currentTheme = THEMES[studentProfile.theme] || THEMES.emerald;
   const isScriptUrlValid = (url) => { if (!url) return false; return url.includes('script.google.com') && url.endsWith('/exec'); };
 
+  // --- HELPER UNTUK MEMPERBAIKI LINK GOOGLE DRIVE ---
+  const getProcessedLogoUrl = (url) => {
+    if (!url) return '';
+    if (url.includes('drive.google.com') && url.includes('/file/d/')) {
+        const idMatch = url.match(/\/d\/(.*?)(?:\/|$)/);
+        if (idMatch && idMatch[1]) {
+            return `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
+        }
+    }
+    return url;
+  };
+
   useEffect(() => {
     // --- FITUR AUTO-CONFIG UNTUK SISWA ---
     const params = new URLSearchParams(window.location.search);
@@ -118,10 +130,9 @@ export default function App() {
     
     if (guruScript) {
       try {
-        const decodedUrl = decodeURIComponent(guruScript);
-        if (isScriptUrlValid(decodedUrl)) {
+        if (isScriptUrlValid(guruScript)) {
           setStudentProfile(prev => {
-            const newProfile = { ...prev, scriptUrl: decodedUrl };
+            const newProfile = { ...prev, scriptUrl: guruScript };
             localStorage.setItem('ramadanProfile', JSON.stringify(newProfile));
             return newProfile;
           });
@@ -309,19 +320,34 @@ export default function App() {
             
             {/* LOGO SEKOLAH DENGAN FALLBACK */}
             <div className={`bg-white p-3 rounded-full shadow-xl mb-4 w-32 h-32 flex items-center justify-center border-4 border-${currentTheme.secondary}-400 overflow-hidden`}>
-               {!logoError ? (
+               {studentProfile.logoUrl || !logoError ? (
                  <img 
-                   src={studentProfile.logoUrl || "/logo.png"} 
+                   src={studentProfile.logoUrl ? getProcessedLogoUrl(studentProfile.logoUrl) : "/logo.png"} 
                    alt="Logo Sekolah" 
                    className="w-full h-full object-contain"
-                   onError={() => setLogoError(true)}
+                   onError={(e) => {
+                     // Jika pakai logoUrl gagal, coba /logo.png lokal
+                     if (studentProfile.logoUrl) {
+                        e.target.src = "/logo.png";
+                        e.target.onerror = () => {
+                           setLogoError(true);
+                           e.target.style.display = 'none';
+                        };
+                     } else {
+                        setLogoError(true);
+                        e.target.style.display = 'none';
+                     }
+                   }}
                  />
-               ) : (
+               ) : null}
+               
+               {/* Fallback ke Ikon Buku jika semua gambar gagal */}
+               {logoError && !studentProfile.logoUrl && (
                  <BookOpen size={48} className={currentTheme.text} />
                )}
             </div>
 
-            <h1 className={`text-2xl font-bold ${currentTheme.text} font-serif leading-tight mb-2`}>Buku Amaliah<br/>Ramadan</h1>
+            <h1 className={`text-2xl font-bold ${currentTheme.text} font-serif leading-tight mb-2`}>Buku Amaliah<br/>Ramadan OnLine</h1>
             <h2 className="text-xs font-semibold text-white/90 bg-black/20 px-3 py-1 rounded-full mb-6">1446 H</h2>
             <div className="w-full space-y-3 mb-6">
               <input type="text" className="w-full p-3 border rounded-xl bg-slate-50 text-center font-bold text-slate-700" placeholder="Nama Lengkap" value={studentProfile.name} onChange={(e) => setStudentProfile(prev => ({ ...prev, name: e.target.value }))} />
@@ -382,7 +408,7 @@ export default function App() {
                       <input 
                         type="text" 
                         className="w-full pl-9 p-2 text-xs bg-slate-50 rounded-xl border border-slate-200 focus:border-blue-300 outline-none transition-all"
-                        placeholder="Contoh: Ust. Adi Hidayat"
+                        placeholder="Contoh: Al-Ustaz Khidir bin Muh. Sunusi"
                         value={currentData.namaPenceramah || ""}
                         onChange={(e) => updateField(activeDay, 'namaPenceramah', e.target.value)}
                         disabled={currentData.validated}
