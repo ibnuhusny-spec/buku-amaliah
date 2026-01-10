@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Star, Moon, Sun, BookOpen, CheckCircle, Award, ChevronLeft, ChevronRight, User, Settings, Camera, X, Heart, MessageCircle, List, Trophy, AlertTriangle, Loader2, ArrowRight, Share2, Copy, Image as ImageIcon, Mic, PenTool, StopCircle, Play, Trash2, CloudUpload, Lock, LogOut, FileText, CheckSquare } from 'lucide-react';
+import { Star, Moon, Sun, BookOpen, CheckCircle, Award, ChevronLeft, ChevronRight, User, Settings, Camera, X, Heart, MessageCircle, List, Trophy, AlertTriangle, Loader2, ArrowRight, Share2, Copy, Link as LinkIcon, Image as ImageIcon, Mic, PenTool, StopCircle, Play, Trash2, CloudUpload, Lock, LogOut, FileText, CheckSquare } from 'lucide-react';
 
 // --- DATA STATIS ---
 const THEMES = {
@@ -13,19 +13,19 @@ const THEMES = {
 const DAFTAR_DOA = [
   { judul: "1. Doa Saat Bangun Tidur", arab: "الْحَمْدُ لِلَّهِ الَّذِي أَحْيَانَا بَعْدَ مَا أَمَاتَنَا وَإِلَيْهِ النُّشُورُ", latin: "Alhamdu lillahil-ladzi ahyana ba'da ma amatana wa ilaihin-nushur.", arti: "Segala puji bagi Allah yang menghidupkan kami kembali setelah mematikan kami dan kepada-Nya (kami) akan dibangkitkan." },
   { judul: "2. Doa Mengenakan Pakaian", arab: "الْحَمْدُ لِلَّهِ الَّذِي كَسَانِي هَذَا (الثَّوْبَ) وَرَزَقَنِيهِ مِنْ غَيْرِ حَوْلٍ مِنِّي وَلَا قُوَّةٍ", latin: "Alhamdu lillahil-ladzi kasani hadza (ats-tsauba) wa razaqanihi min ghairi haulin minni wa la quwwah.", arti: "Segala puji bagi Allah yang telah memakaikan pakaian ini kepadaku dan mengaruniakannya kepadaku tanpa daya dan kekuatan dariku." },
-  { judul: "3. Doa Mengenakan Pakaian Baru", arab: "اللَّهُمَّ لَكَ الْحَمْدُ أَنْتَ كَسَوْتَنِيهِ، أَسْأَلُكَ مِنْ خَيْرِهِ وَخَيْرِ مَا صُنِعَ لَهُ، وَأَعُوذُ بِكَ مِنْ شَرِّهِ وَشَرِّ مَا صُنِعَ لَهُ", latin: "Allahumma lakal-hamdu anta kasautaniih...", arti: "Ya Allah, bagi-Mu segala puji, Engkau-lah yang memakaikan pakaian ini kepadaku." },
+  { judul: "3. Doa Mengenakan Pakaian Baru", arab: "اللَّهُمَّ لَكَ الْحَمْدُ أَنْتَ كَسَوْتَنِيهِ، أَسْأَلُكَ مِنْ خَيْرِهِ وَخَيْرِ مَا صُنِعَ لَهُ، وَأَعُوذُ بِكَ مِنْ شَرِّهِ وَشَرِّ مَا صُنِعَ لَهُ", latin: "Allahumma lakal-hamdu anta kasautaniih...", arti: "Ya Allah, bagi-Mu segala puji, Engkau-lah yang memakaikan pakaian ini kepadaku. Aku memohon kepada-Mu kebaikannya dan kebaikan apa saja yang dibuat untuknya, dan aku berlindung kepada-Mu dari keburukannya dan keburukan apa saja yang dibuat untuknya." },
   { judul: "4. Doa Menanggalkan Pakaian", arab: "بِسْمِ اللهِ", latin: "Bismillah.", arti: "Dengan nama Allah." },
-  { judul: "5. Doa Ketika Masuk WC", arab: "اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْخُبُثِ وَالْخَبَائِثِ", latin: "Allahumma inni a'udzu bika minal khubutsi wal khabaa-its.", arti: "Ya Allah, sesungguhnya aku berlindung kepada-Mu dari godaan setan laki-laki dan perempuan." },
+  { judul: "5. Doa Ketika Masuk WC", arab: "(بِسْمِ اللهِ) اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْخُبُثِ وَالْخَبَائِثِ", latin: "(Bismillah) Allahumma inni a'udzu bika minal khubutsi wal khabaa-its.", arti: "Dengan nama Allah. Ya Allah, sesungguhnya aku berlindung kepada-Mu dari godaan setan laki-laki dan perempuan." },
   { judul: "6. Doa Ketika Keluar WC", arab: "غُفْرَانَكَ", latin: "Ghufraanak.", arti: "Aku memohon ampunan-Mu." },
   { judul: "7. Dzikir Sebelum Berwudhu", arab: "بِسْمِ اللهِ", latin: "Bismillah.", arti: "Dengan nama Allah." },
-  { judul: "8. Dzikir Setelah Berwudhu", arab: "أَشْهَدُ أَنْ لَا إِلَهَ إِلَّا اللهُ وَحْدَهُ لَا شَرِيكَ لَهُ وَأَشْهَدُ أَنَّ مُحَمَّدًا عَبْدُهُ وَرَسُولُهُ", latin: "Asyhadu an laa ilaaha illallaah wahdahu laa syariika lah...", arti: "Aku bersaksi bahwa tidak ada Tuhan yang berhak disembah selain Allah semata." },
-  { judul: "9. Doa Ketika Keluar Rumah", arab: "بِسْمِ اللهِ، تَوَكَّلْتُ عَلَى اللهِ، وَلَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللهِ", latin: "Bismillaahi tawakkaltu 'alallaah...", arti: "Dengan nama Allah, aku bertawakkal kepada Allah." },
-  { judul: "10. Doa Ketika Masuk Rumah", arab: "بِسْمِ اللهِ وَلَجْنَا، وَبِسْمِ اللهِ خَرَجْنَا، وَعَلَى رَبِّنَا تَوَكَّلْنَا", latin: "Bismillaahi walajnaa, wa bismillaahi kharajnaa...", arti: "Dengan nama Allah kami masuk, dan dengan nama Allah kami keluar." },
+  { judul: "8. Dzikir Setelah Berwudhu", arab: "أَشْهَدُ أَنْ لَا إِلَهَ إِلَّا اللهُ وَحْدَهُ لَا شَرِيكَ لَهُ وَأَشْهَدُ أَنَّ مُحَمَّدًا عَبْدُهُ وَرَسُولُهُ", latin: "Asyhadu an laa ilaaha illallaah wahdahu laa syariika lah...", arti: "Aku bersaksi bahwa tidak ada Tuhan yang berhak disembah selain Allah semata, tidak ada sekutu bagi-Nya. Dan aku bersaksi bahwa Muhammad adalah hamba dan utusan-Nya." },
+  { judul: "9. Doa Ketika Keluar Rumah", arab: "بِسْمِ اللهِ، تَوَكَّلْتُ عَلَى اللهِ، وَلَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللهِ", latin: "Bismillaahi tawakkaltu 'alallaah...", arti: "Dengan nama Allah, aku bertawakkal kepada Allah. Tiada daya dan kekuatan kecuali dengan pertolongan Allah." },
+  { judul: "10. Doa Ketika Masuk Rumah", arab: "بِسْمِ اللهِ وَلَجْنَا، وَبِسْمِ اللهِ خَرَجْنَا، وَعَلَى رَبِّنَا تَوَكَّلْنَا", latin: "Bismillaahi walajnaa, wa bismillaahi kharajnaa...", arti: "Dengan nama Allah kami masuk, dan dengan nama Allah kami keluar, dan kepada Tuhan kami kami bertawakkal." },
   { judul: "11. Doa Pergi Ke Masjid", arab: "اللَّهُمَّ اجْعَلْ فِي قَلْبِي نُورًا، وَفِي لِسَانِي نُورًا", latin: "Allahummaj'al fii qalbii nuuraa...", arti: "Ya Allah, jadikanlah cahaya di hatiku dan cahaya di lisanku." },
   { judul: "12. Doa Masuk Masjid", arab: "اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ", latin: "Allahummaftah lii abwaaba rahmatik.", arti: "Ya Allah, bukalah untukku pintu-pintu rahmat-Mu." },
   { judul: "13. Doa Keluar Masjid", arab: "اللَّهُمَّ إِنِّي أَسْأَلُكَ مِنْ فَضْلِكَ", latin: "Allahumma innii as-aluka min fadhlika.", arti: "Ya Allah, sesungguhnya aku memohon keutamaan dari-Mu." },
-  { judul: "14. Dzikir Setelah Azan", arab: "اللَّهُمَّ رَبَّ هَذِهِ الدَّعْوَةِ التَّامَّةِ، وَالصَّلَاةِ الْقَائِمَةِ، آتِ مُحَمَّدًا الْوَسِيلَةَ وَالْفَضِيلَةَ، وَابْعَثْهُ مَقَامًا مَحْمُودًا الَّذِي وَعَدْتَهُ", latin: "Allahumma rabba hadzihid-da'watit-tammah...", arti: "Ya Allah, Tuhan Pemilik panggilan yang sempurna ini." },
-  { judul: "15. Doa Istiftah", arab: "اللَّهُمَّ بَاعِدْ بَيْنِي وَبَيْنَ خَطَايَايَ كَمَا بَاعَدْتَ بَيْنَ الْمَشْرِقِ وَالْمَغْرِبِ", latin: "Allahumma baa'id bainii wa baina khathaayaaya...", arti: "Ya Allah, jauhkanlah antara aku dan kesalahan-kesalahanku." },
+  { judul: "14. Dzikir Setelah Azan", arab: "اللَّهُمَّ رَبَّ هَذِهِ الدَّعْوَةِ التَّامَّةِ، وَالصَّلَاةِ الْقَائِمَةِ، آتِ مُحَمَّدًا الْوَسِيلَةَ وَالْفَضِيلَةَ، وَابْعَثْهُ مَقَامًا مَحْمُودًا الَّذِي وَعَدْتَهُ", latin: "Allahumma rabba hadzihid-da'watit-tammah...", arti: "Ya Allah, Tuhan Pemilik panggilan yang sempurna ini dan shalat yang ditegakkan. Berilah Al-Wasilah dan fadhilah kepada Nabi Muhammad. Dan bangkitkanlah beliau di tempat yang terpuji yang telah Engkau janjikan." },
+  { judul: "15. Doa Istiftah", arab: "اللَّهُمَّ بَاعِدْ بَيْنِي وَبَيْنَ خَطَايَايَ كَمَا بَاعَدْتَ بَيْنَ الْمَشْرِقِ وَالْمَغْرِبِ", latin: "Allahumma baa'id bainii wa baina khathaayaaya...", arti: "Ya Allah, jauhkanlah antara aku dan kesalahan-kesalahanku sebagaimana Engkau menjauhkan antara timur dan barat." },
   { judul: "16. Doa Ruku'", arab: "سُبْحَانَ رَبِّيَ الْعَظِيمِ", latin: "Subhaana rabbiyal 'azhiim.", arti: "Maha Suci Tuhanku Yang Maha Agung." },
   { judul: "17. Doa Bangkit Dari Ruku'", arab: "سَمِعَ اللهُ لِمَنْ حَمِدَهُ ... رَبَّنَا وَلَكَ الْحَمْدُ", latin: "Sami'allaahu liman hamidah... Rabbanaa wa lakal hamdu.", arti: "Allah Maha Mendengar orang yang memuji-Nya." },
   { judul: "18. Doa Sujud", arab: "سُبْحَانَ رَبِّيَ الْأَعْلَى", latin: "Subhaana rabbiyal a'laa.", arti: "Maha Suci Tuhanku Yang Maha Tinggi." },
@@ -108,6 +108,10 @@ export default function App() {
        setScriptUrl(parsed.scriptUrl || localStorage.getItem('ramadanScriptUrl') || '');
        setSchoolName(parsed.schoolName || 'Sekolah Dasar Islam Terpadu');
        setLogoUrl(parsed.logoUrl || '');
+    } else {
+       // Coba ambil script URL dari local storage global jika ada
+       const globalUrl = localStorage.getItem('ramadanScriptUrl');
+       if (globalUrl) setScriptUrl(globalUrl);
     }
   }, []);
 
@@ -140,14 +144,14 @@ export default function App() {
            </div>
            
            <div className="mt-8 pt-4 border-t border-white/10">
-              <p className="text-[10px] text-emerald-200/60">Versi Final 3.0 (Multi-User & Nilai)</p>
+              <p className="text-[10px] text-emerald-200/60">Versi Final 3.2 (Fix Duplicate)</p>
            </div>
         </div>
       </div>
     );
   }
 
-  if (role === 'teacher_login') return <TeacherLogin setRole={setRole} scriptUrl={scriptUrl} />;
+  if (role === 'teacher_login') return <TeacherLogin setRole={setRole} scriptUrl={scriptUrl} setScriptUrl={setScriptUrl} />;
   if (role === 'teacher') return <TeacherDashboard setRole={setRole} scriptUrl={scriptUrl} />;
   if (role === 'student') return <StudentApp setRole={setRole} globalScriptUrl={scriptUrl} schoolName={schoolName} logoUrl={logoUrl} />;
   
@@ -158,28 +162,62 @@ export default function App() {
 // 1. MODUL GURU
 // ==========================================
 
-function TeacherLogin({ setRole, scriptUrl }) {
+function TeacherLogin({ setRole, scriptUrl, setScriptUrl }) {
   const [pin, setPin] = useState('');
+  const [localUrl, setLocalUrl] = useState(scriptUrl || '');
   
   const handleLogin = () => {
-    // PIN Sederhana (Bisa diubah jika perlu)
+    // PIN Sederhana
     if (pin === '1234') {
-      if (!scriptUrl) return alert("Link Script belum terdeteksi. Pastikan Anda sudah setting di menu Murid dulu atau gunakan Link Share.");
+      if (!localUrl) return alert("Mohon isi Link Script Guru terlebih dahulu agar aplikasi bisa mengambil data.");
+      
+      // Simpan URL ke state global & local storage
+      setScriptUrl(localUrl);
+      localStorage.setItem('ramadanScriptUrl', localUrl);
+      
       setRole('teacher');
     } else {
-      alert('PIN Salah! (Default: 1234)');
+      alert('PIN Salah! (Hint: 1234)');
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-      <div className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-sm text-center">
-        <h2 className="text-xl font-bold text-slate-700 mb-4 flex items-center justify-center gap-2"><Lock size={20}/> Login Guru</h2>
-        <p className="text-xs text-slate-400 mb-4">Masukkan PIN untuk masuk dashboard.</p>
-        <input type="number" value={pin} onChange={(e) => setPin(e.target.value)} placeholder="PIN (1234)" className="w-full p-3 bg-slate-50 border rounded-xl mb-6 text-center text-2xl font-bold outline-none focus:ring-2 focus:ring-emerald-500 tracking-widest" />
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4 font-sans">
+      <div className="bg-white p-6 rounded-3xl shadow-xl w-full max-w-sm text-center">
+        <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+           <Lock size={28} className="text-emerald-600"/>
+        </div>
+        <h2 className="text-xl font-bold text-slate-800 mb-1">Login Guru</h2>
+        <p className="text-xs text-slate-400 mb-6">Kelola laporan & nilai hafalan siswa.</p>
+        
+        {/* INPUT PIN */}
+        <div className="mb-4 text-left">
+           <label className="text-xs font-bold text-slate-500 ml-1 mb-1 block">PIN Akses</label>
+           <input 
+             type="number" 
+             value={pin} 
+             onChange={(e) => setPin(e.target.value)} 
+             placeholder="1234" 
+             className="w-full p-3 bg-slate-50 border rounded-xl text-center text-2xl font-bold outline-none focus:ring-2 focus:ring-emerald-500 tracking-widest" 
+           />
+        </div>
+
+        {/* INPUT URL SCRIPT (BARU) */}
+        <div className="mb-6 text-left">
+           <label className="text-xs font-bold text-slate-500 ml-1 mb-1 block">Link Script Guru (Spreadsheet)</label>
+           <input 
+             type="text" 
+             value={localUrl} 
+             onChange={(e) => setLocalUrl(e.target.value)} 
+             placeholder="https://script.google.com/.../exec" 
+             className="w-full p-3 bg-slate-50 border rounded-xl text-xs font-mono text-slate-600 outline-none focus:border-emerald-500" 
+           />
+           <p className="text-[9px] text-slate-400 mt-1 ml-1">Paste link Web App dari Google Script di sini.</p>
+        </div>
+
         <div className="flex gap-2">
-          <button onClick={() => setRole('home')} className="flex-1 py-3 bg-slate-200 text-slate-600 rounded-xl font-bold">Batal</button>
-          <button onClick={handleLogin} className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-bold">Masuk</button>
+          <button onClick={() => setRole('home')} className="flex-1 py-3 bg-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-300 transition">Batal</button>
+          <button onClick={handleLogin} className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition shadow-lg shadow-emerald-200">Masuk</button>
         </div>
       </div>
     </div>
@@ -190,8 +228,6 @@ function TeacherDashboard({ setRole, scriptUrl }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedStudent, setSelectedStudent] = useState(null);
-  
-  // Form Nilai
   const [nilaiInput, setNilaiInput] = useState('');
   const [koreksiInput, setKoreksiInput] = useState('');
   const [saving, setSaving] = useState(false);
@@ -205,7 +241,7 @@ function TeacherDashboard({ setRole, scriptUrl }) {
       const json = await response.json();
       setData(json);
     } catch (e) {
-      alert("Gagal mengambil data. Pastikan Script URL benar dan mode 'Anyone'.");
+      alert("Gagal mengambil data. Pastikan Script URL benar.");
     } finally {
       setLoading(false);
     }
@@ -228,7 +264,7 @@ function TeacherDashboard({ setRole, scriptUrl }) {
       });
       alert("Nilai berhasil disimpan!");
       setSelectedStudent(null);
-      fetchData(); // Refresh list
+      fetchData(); 
     } catch (e) { alert("Gagal menyimpan."); } 
     finally { setSaving(false); }
   };
@@ -344,6 +380,7 @@ function StudentApp({ setRole, globalScriptUrl, schoolName }) {
   const [base64Image, setBase64Image] = useState("");
   const [isCompressing, setIsCompressing] = useState(false);
   const [shareLinkCopied, setShareLinkCopied] = useState(false);
+  const [logoError, setLogoError] = useState(false);
 
   // Audio States
   const [isRecording, setIsRecording] = useState(false);
@@ -547,7 +584,7 @@ function StudentApp({ setRole, globalScriptUrl, schoolName }) {
     <div className="min-h-screen bg-emerald-50 pb-24 font-sans">
        <div className="bg-emerald-600 text-white p-5 rounded-b-3xl shadow-lg sticky top-0 z-10">
           <div className="flex justify-between items-center mb-2">
-             <div><h1 className="font-bold text-lg">{studentProfile.name || 'Murid'}</h1><p className="text-xs opacity-80">{studentProfile.class}</p></div>
+             <div><h1 className="font-bold">{studentProfile.name || 'Murid'}</h1><p className="text-xs opacity-80">{studentProfile.class}</p></div>
              <button onClick={() => setView('cover')} className="bg-white/20 p-2 rounded-full"><Settings size={18}/></button>
           </div>
           <div className="bg-emerald-800/30 p-2 rounded-xl flex items-center justify-between">
