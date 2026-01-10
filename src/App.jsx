@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Star, Moon, Sun, BookOpen, CheckCircle, Award, ChevronLeft, ChevronRight, User, Settings, Camera, X, Heart, MessageCircle, List, Trophy, AlertTriangle, Loader2, ArrowRight, Share2, Copy, Link as LinkIcon, Image as ImageIcon } from 'lucide-react';
+import { Star, Moon, Sun, BookOpen, CheckCircle, Award, ChevronLeft, ChevronRight, User, Settings, Camera, X, Heart, MessageCircle, List, Trophy, AlertTriangle, Loader2, ArrowRight, Share2, Copy, Link as LinkIcon, Image as ImageIcon, Mic, PenTool } from 'lucide-react';
 
 // --- DATA: KOLEKSI DOA (HISNUL MUSLIM VERIFIED) ---
 const DAFTAR_DOA = [
@@ -92,6 +92,7 @@ export default function App() {
     name: '', 
     class: '', 
     scriptUrl: '', 
+    logoUrl: '', 
     startDateRamadan: '2026-02-18', 
     schoolName: 'Sekolah Dasar Islam Terpadu', 
     theme: 'emerald' 
@@ -110,18 +111,6 @@ export default function App() {
   const currentTheme = THEMES[studentProfile.theme] || THEMES.emerald;
   const isScriptUrlValid = (url) => { if (!url) return false; return url.includes('script.google.com') && url.endsWith('/exec'); };
 
-  // --- HELPER UNTUK MEMPERBAIKI LINK GOOGLE DRIVE ---
-  const getProcessedLogoUrl = (url) => {
-    if (!url) return '';
-    if (url.includes('drive.google.com') && url.includes('/file/d/')) {
-        const idMatch = url.match(/\/d\/(.*?)(?:\/|$)/);
-        if (idMatch && idMatch[1]) {
-            return `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
-        }
-    }
-    return url;
-  };
-
   useEffect(() => {
     // --- FITUR AUTO-CONFIG UNTUK SISWA ---
     const params = new URLSearchParams(window.location.search);
@@ -129,9 +118,10 @@ export default function App() {
     
     if (guruScript) {
       try {
-        if (isScriptUrlValid(guruScript)) {
+        const decodedUrl = decodeURIComponent(guruScript);
+        if (isScriptUrlValid(decodedUrl)) {
           setStudentProfile(prev => {
-            const newProfile = { ...prev, scriptUrl: guruScript };
+            const newProfile = { ...prev, scriptUrl: decodedUrl };
             localStorage.setItem('ramadanProfile', JSON.stringify(newProfile));
             return newProfile;
           });
@@ -152,12 +142,20 @@ export default function App() {
         if (!parsedData[i].hasOwnProperty('salatMalam')) parsedData[i].salatMalam = false;
         if (!parsedData[i].hasOwnProperty('kosakata')) parsedData[i].kosakata = false;
         if (!parsedData[i].hasOwnProperty('witir')) parsedData[i].witir = false; 
+        if (!parsedData[i].hasOwnProperty('namaPenceramah')) parsedData[i].namaPenceramah = ""; 
+        if (!parsedData[i].hasOwnProperty('temaCeramah')) parsedData[i].temaCeramah = "";
       }
       setUserData(parsedData);
     } else {
       const initialData = {};
       for (let i = 1; i <= 30; i++) {
-        initialData[i] = { puasa: false, subuh: false, zuhur: false, ashar: false, maghrib: false, isya: false, tarawih: false, witir: false, tadarus: false, salatMalam: false, kosakata: false, bantuIbu: false, hafalDoa: "", amalanLain: "", amalanLainCheck: false, validated: false };
+        initialData[i] = { 
+          puasa: false, subuh: false, zuhur: false, ashar: false, maghrib: false, isya: false, 
+          tarawih: false, witir: false, tadarus: false, 
+          salatMalam: false, kosakata: false, bantuIbu: false, hafalDoa: "", amalanLain: "", amalanLainCheck: false,
+          namaPenceramah: "", temaCeramah: "",
+          validated: false 
+        };
       }
       setUserData(initialData);
     }
@@ -189,23 +187,20 @@ export default function App() {
   const copyShareLink = () => {
     const link = generateShareLink();
     if (link) {
-      // Gunakan textarea sementara untuk kompatibilitas iframe/browser lama
       const textArea = document.createElement("textarea");
       textArea.value = link;
       textArea.style.position = 'fixed';
       textArea.style.left = '-9999px';
       document.body.appendChild(textArea);
       textArea.select();
-      
       try {
-        document.execCommand('copy'); // Metode klasik yang lebih stabil di iframe
+        document.execCommand('copy');
         setShareLinkCopied(true);
         setTimeout(() => setShareLinkCopied(false), 3000);
       } catch (err) {
         console.error('Gagal menyalin:', err);
         alert('Gagal menyalin otomatis. Silakan salin manual.');
       }
-      
       document.body.removeChild(textArea);
     }
   };
@@ -216,6 +211,11 @@ export default function App() {
     if (dayData.tarawih) score += 10; if (dayData.witir) score += 10; if (dayData.tadarus) score += 10;
     if (dayData.salatMalam) score += (dayNum >= 21) ? 20 : 10; if (dayData.kosakata) score += 5; if (dayData.bantuIbu) score += 5;
     if (dayData.hafalDoa && dayData.hafalDoa !== "") score += 10; if (dayData.amalanLainCheck && dayData.amalanLain !== "") score += 5;
+    
+    // SCORE CERAMAH
+    if (dayData.namaPenceramah && dayData.namaPenceramah.trim() !== "") score += 5;
+    if (dayData.temaCeramah && dayData.temaCeramah.trim() !== "") score += 10;
+    
     return score;
   };
   const calculateTotalScore = () => { let score = 0; Object.entries(userData).forEach(([dayKey, dayData]) => { score += calculateDailyScore(dayData, parseInt(dayKey)); }); return score; };
@@ -235,7 +235,13 @@ export default function App() {
       if (currentDayData.kosakata) catatanLengkap.push("✅ Hafal Kosakata");
       if (currentDayData.bantuIbu) catatanLengkap.push("✅ Bantu Ibu");
       if (currentDayData.hafalDoa) catatanLengkap.push(`✅ Doa: ${currentDayData.hafalDoa}`);
+      
+      // TAMBAHAN CERAMAH DI LAPORAN
+      if (currentDayData.namaPenceramah) catatanLengkap.push(`🗣️ Penceramah: ${currentDayData.namaPenceramah}`);
+      if (currentDayData.temaCeramah) catatanLengkap.push(`📝 Tema: ${currentDayData.temaCeramah}`);
+      
       if (currentDayData.amalanLainCheck && currentDayData.amalanLain) catatanLengkap.push(`✅ Extra: ${currentDayData.amalanLain}`);
+      
       const payload = { nama: studentProfile.name, kelas: studentProfile.class, hari: activeDay, poin: calculateDailyScore(currentDayData, activeDay), puasa: currentDayData.puasa, tarawih: currentDayData.tarawih, kebaikan: catatanLengkap.join(", "), foto: base64Image, namaFoto: selectedImage };
       await fetch(scriptUrl, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) });
       setSubmitStatus('success'); triggerConfetti(); alert(`✅ Alhamdulillah! Laporan Hari ke-${activeDay} berhasil dikirim.`); removeImage();
@@ -259,17 +265,17 @@ export default function App() {
               <div className="space-y-4">
                 <div><label className="text-xs font-bold text-slate-500 mb-1 block">Nama Sekolah</label><input type="text" className="w-full p-2 border rounded-lg text-sm" value={studentProfile.schoolName} onChange={(e) => setStudentProfile(prev => ({...prev, schoolName: e.target.value}))} /></div>
                 
-                {/* --- INPUT LOGO SEKOLAH --- */}
+                {/* --- INPUT LOGO (OPTIONAL) --- */}
                 <div>
                   <label className="text-xs font-bold text-slate-500 mb-1 block flex items-center gap-1"><ImageIcon size={12}/> Link Logo Sekolah (Opsional)</label>
                   <input 
                     type="text" 
                     className="w-full p-2 border rounded-lg text-xs font-mono" 
-                    placeholder="https://... (Link Gambar Logo)" 
+                    placeholder="https://... (Kosongkan jika pakai logo.png lokal)" 
                     value={studentProfile.logoUrl || ''} 
                     onChange={(e) => setStudentProfile(prev => ({...prev, logoUrl: e.target.value}))} 
                   />
-                  <p className="text-[9px] text-slate-400 mt-1">Bisa pakai Link Google Drive (Pastikan setting: Anyone with link)</p>
+                  <p className="text-[9px] text-slate-400 mt-1">Otomatis pakai /logo.png jika kosong.</p>
                 </div>
 
                 <div><label className="text-xs font-bold text-slate-500 mb-2 block">Pilih Tema</label><div className="flex gap-2 justify-center flex-wrap">{Object.values(THEMES).map((t) => (<button key={t.id} onClick={() => setStudentProfile(prev => ({...prev, theme: t.id}))} className={`w-8 h-8 rounded-full border-2 ${t.header} ${studentProfile.theme === t.id ? 'ring-2 ring-slate-400 border-white' : 'border-transparent'}`} />))}</div></div>
@@ -301,32 +307,16 @@ export default function App() {
           <div className={`absolute top-0 left-0 w-full h-40 ${currentTheme.header} rounded-b-[50%] z-0`}></div>
           <div className="relative z-10 p-6 flex flex-col items-center text-center mt-4">
             
-            {/* LOGO SEKOLAH DENGAN FALLBACK & AUTO-FIX DRIVE URL */}
+            {/* LOGO SEKOLAH DENGAN FALLBACK */}
             <div className={`bg-white p-3 rounded-full shadow-xl mb-4 w-32 h-32 flex items-center justify-center border-4 border-${currentTheme.secondary}-400 overflow-hidden`}>
-               {studentProfile.logoUrl || !logoError ? (
+               {!logoError ? (
                  <img 
-                   src={studentProfile.logoUrl ? getProcessedLogoUrl(studentProfile.logoUrl) : "/logo.png"} 
+                   src={studentProfile.logoUrl || "/logo.png"} 
                    alt="Logo Sekolah" 
                    className="w-full h-full object-contain"
-                   onError={(e) => {
-                     // Jika pakai logoUrl gagal, coba /logo.png lokal
-                     if (studentProfile.logoUrl) {
-                        e.target.src = "/logo.png";
-                        // Jika lokal juga gagal (logoError), sembunyikan gambar
-                        e.target.onerror = () => {
-                           setLogoError(true);
-                           e.target.style.display = 'none';
-                        };
-                     } else {
-                        setLogoError(true);
-                        e.target.style.display = 'none';
-                     }
-                   }}
+                   onError={() => setLogoError(true)}
                  />
-               ) : null}
-               
-               {/* Fallback ke Ikon Buku jika semua gambar gagal */}
-               {logoError && !studentProfile.logoUrl && (
+               ) : (
                  <BookOpen size={48} className={currentTheme.text} />
                )}
             </div>
@@ -341,7 +331,7 @@ export default function App() {
             <p className="mt-4 text-xs font-bold text-slate-400 uppercase tracking-widest">{studentProfile.schoolName}</p>
           </div>
           <div className="absolute bottom-2 left-0 w-full text-center">
-             <span className="text-[10px] text-slate-400 font-mono">Versi Final 2.0 (Bersih)</span>
+             <span className="text-[10px] text-slate-400 font-mono">Versi Final 2.3 (Ceramah + Share Fix)</span>
           </div>
         </div>
       </div>
@@ -365,14 +355,57 @@ export default function App() {
           <div className="space-y-4 pb-10">
             <div className="flex items-center justify-between bg-white p-2 rounded-xl shadow-sm"><button onClick={() => setActiveDay(d => Math.max(1, d - 1))} className="p-2 bg-slate-50 rounded-lg"><ChevronLeft size={16}/></button><div className="text-center"><div className="font-bold text-slate-800">Ramadan Hari ke-{activeDay}</div><div className="text-[10px] text-slate-500">{currentDateGregorian}</div></div><button onClick={() => setActiveDay(d => Math.min(30, d + 1))} className="p-2 bg-slate-50 rounded-lg"><ChevronRight size={16}/></button></div>
             {currentData.validated && <div className="bg-green-100 text-green-700 p-2 rounded-lg text-xs font-bold text-center">✅ Data sudah divalidasi</div>}
+            
+            {/* PUASA */}
             <div onClick={() => !currentData.validated && toggleCheck(activeDay, 'puasa')} className={`relative overflow-hidden p-5 rounded-3xl border-2 cursor-pointer transition-all duration-300 ease-out group shadow-sm ${currentData.puasa ? `bg-gradient-to-br from-orange-400 to-yellow-500 border-orange-600 shadow-lg` : 'bg-white border-slate-200 hover:border-slate-300'}`}>
                 {currentData.puasa && (<div className="absolute -right-5 -top-5 w-24 h-24 bg-white opacity-20 rounded-full blur-2xl pointer-events-none"></div>)}
                 <div className="flex items-center justify-between relative z-10"><div className="flex items-center gap-4"><div className={`p-3 rounded-2xl transition-all duration-300 ${currentData.puasa ? 'bg-white text-orange-500 shadow-md' : 'bg-slate-100 text-slate-400'}`}><Sun size={28} className={currentData.puasa ? 'animate-spin-slow fill-orange-500' : ''} /></div><div><h3 className={`font-bold text-lg leading-tight ${currentData.puasa ? 'text-white' : 'text-slate-600'}`}>Puasa Penuh</h3><p className={`text-xs font-medium mt-1 ${currentData.puasa ? 'text-orange-100' : 'text-slate-400'}`}>{currentData.puasa ? 'Alhamdulillah! (+20 Poin)' : 'Klik jika berpuasa hari ini'}</p></div></div><div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${currentData.puasa ? 'bg-white border-white rotate-0' : 'border-slate-200 bg-slate-50 -rotate-12'}`}>{currentData.puasa && <CheckCircle size={20} className="text-orange-500" />}</div></div>
             </div>
+
             <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100"><h3 className="font-bold text-xs mb-3 text-slate-500 uppercase">Shalat Wajib (+10)</h3><div className="flex flex-wrap gap-2">{['Subuh', 'Zuhur', 'Ashar', 'Maghrib', 'Isya'].map(s => (<button key={s} onClick={() => !currentData.validated && toggleCheck(activeDay, s.toLowerCase())} className={`flex-1 py-2 rounded-lg text-xs font-bold border ${currentData[s.toLowerCase()] ? 'bg-blue-500 text-white border-blue-500' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>{s}</button>))}</div></div>
-             <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] p-4 rounded-3xl shadow-lg border border-indigo-900 relative overflow-hidden text-white"><div className="absolute top-2 right-4 opacity-30"><Star size={10} className="fill-white" /></div><div className="absolute bottom-4 left-4 opacity-20"><Star size={14} className="fill-white" /></div><div className="flex justify-between items-center relative z-10"><div className="flex items-center gap-4"><div className="p-3 bg-white/10 rounded-2xl backdrop-blur-sm"><Moon size={24} className="text-yellow-200 fill-yellow-200" /></div><div><h3 className="font-bold text-white flex items-center gap-2">Salat Malam</h3><p className="text-xs text-indigo-200">Bangun Malam (Tahajud)</p></div></div><div onClick={() => !currentData.validated && toggleCheck(activeDay, 'salatMalam')} className={`w-10 h-10 rounded-full border-2 flex items-center justify-center cursor-pointer transition-all ${currentData.salatMalam ? 'bg-yellow-400 border-yellow-400 text-yellow-900 scale-110' : 'border-indigo-400/50 bg-white/5'}`}>{currentData.salatMalam && <CheckCircle size={20} />}</div></div></div>
+            <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] p-4 rounded-3xl shadow-lg border border-indigo-900 relative overflow-hidden text-white"><div className="absolute top-2 right-4 opacity-30"><Star size={10} className="fill-white" /></div><div className="absolute bottom-4 left-4 opacity-20"><Star size={14} className="fill-white" /></div><div className="flex justify-between items-center relative z-10"><div className="flex items-center gap-4"><div className="p-3 bg-white/10 rounded-2xl backdrop-blur-sm"><Moon size={24} className="text-yellow-200 fill-yellow-200" /></div><div><h3 className="font-bold text-white flex items-center gap-2">Salat Malam</h3><p className="text-xs text-indigo-200">Bangun Malam (Tahajud)</p></div></div><div onClick={() => !currentData.validated && toggleCheck(activeDay, 'salatMalam')} className={`w-10 h-10 rounded-full border-2 flex items-center justify-center cursor-pointer transition-all ${currentData.salatMalam ? 'bg-yellow-400 border-yellow-400 text-yellow-900 scale-110' : 'border-indigo-400/50 bg-white/5'}`}>{currentData.salatMalam && <CheckCircle size={20} />}</div></div></div>
             <div className="grid grid-cols-3 gap-2">{[{ id: 'tarawih', label: 'Tarawih' }, { id: 'witir', label: 'Witir' }, { id: 'tadarus', label: 'Tadarus' }].map(ibadah => (<div key={ibadah.id} onClick={() => !currentData.validated && toggleCheck(activeDay, ibadah.id)} className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 cursor-pointer text-center ${currentData[ibadah.id] ? `bg-${currentTheme.accent}-50 border-${currentTheme.accent}-500` : 'bg-white border-slate-100'}`}><span className={`font-bold text-xs ${currentData[ibadah.id] ? currentTheme.text : 'text-slate-500'}`}>{ibadah.label}</span></div>))}</div>
+            
+            {/* KEGIATAN POSITIF */}
             <div className={`bg-gradient-to-br from-white to-${currentTheme.accent}-50 p-5 rounded-3xl shadow-sm border border-${currentTheme.accent}-100 space-y-3`}><h3 className={`font-bold text-sm ${currentTheme.textLight} flex items-center gap-2`}><Heart size={16} /> Kegiatan Positif</h3>{[{key: 'kosakata', label: 'Hafal Kosakata (+5)'}, {key: 'bantuIbu', label: 'Bantu Ibu (+5)'}].map(item => (<div key={item.key} onClick={() => !currentData.validated && toggleCheck(activeDay, item.key)} className={`p-3 rounded-xl border cursor-pointer flex justify-between items-center ${currentData[item.key] ? `${currentTheme.bg} border-${currentTheme.accent}-300` : 'bg-white border-slate-100'}`}><span className="text-xs font-bold">{item.label}</span><div className={`w-5 h-5 rounded-full border flex items-center justify-center ${currentData[item.key] ? `${currentTheme.header} border-transparent` : 'border-slate-300'}`}>{currentData[item.key] && <CheckCircle size={12} className="text-white" />}</div></div>))}<div className="p-3 bg-white rounded-2xl border border-slate-100"><div className="flex items-center gap-2 mb-2"><List size={18} className={`text-${currentTheme.accent}-500`} /><span className="text-xs font-bold text-slate-600">Menghafal Doa (+10)</span></div><select className={`w-full text-xs p-2 bg-slate-50 rounded-lg border-none outline-none text-slate-700`} value={currentData.hafalDoa || ""} onChange={(e) => updateField(activeDay, 'hafalDoa', e.target.value)} disabled={currentData.validated}><option value="">-- Pilih Doa --</option>{DAFTAR_DOA.map((d, i) => <option key={i} value={d.judul}>{d.judul}</option>)}</select></div><div className="p-3 bg-white rounded-2xl border border-slate-100"><div className="flex justify-between mb-2"><span className="text-xs font-bold text-slate-600">Amalan Lain (+5)</span><label className="flex items-center gap-1"><input type="checkbox" checked={currentData.amalanLainCheck || false} onChange={() => toggleCheck(activeDay, 'amalanLainCheck')} disabled={currentData.validated} /><span className="text-[10px]">Selesai</span></label></div><input type="text" className="w-full text-xs p-2 bg-slate-50 rounded-lg border border-slate-200 outline-none" placeholder="Contoh: Sedekah..." value={currentData.amalanLain || ""} onChange={(e) => updateField(activeDay, 'amalanLain', e.target.value)} disabled={currentData.validated} /></div></div>
+            
+            {/* JURNAL CERAMAH (FITUR BARU) */}
+            <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                <h3 className="font-bold text-xs text-slate-500 mb-3 flex items-center gap-2 uppercase tracking-wide">
+                  <Mic size={14} className="text-blue-500" /> Jurnal Ceramah (Tarawih/Subuh)
+                </h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[10px] text-slate-400 font-bold ml-1 mb-1 block">Nama Penceramah (+5 Poin)</label>
+                    <div className="relative">
+                      <User size={14} className="absolute left-3 top-3 text-slate-300" />
+                      <input 
+                        type="text" 
+                        className="w-full pl-9 p-2 text-xs bg-slate-50 rounded-xl border border-slate-200 focus:border-blue-300 outline-none transition-all"
+                        placeholder="Contoh: Ust. Adi Hidayat"
+                        value={currentData.namaPenceramah || ""}
+                        onChange={(e) => updateField(activeDay, 'namaPenceramah', e.target.value)}
+                        disabled={currentData.validated}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-400 font-bold ml-1 mb-1 block">Tema Ceramah (+10 Poin)</label>
+                    <div className="relative">
+                      <PenTool size={14} className="absolute left-3 top-3 text-slate-300" />
+                      <input 
+                        type="text" 
+                        className="w-full pl-9 p-2 text-xs bg-slate-50 rounded-xl border border-slate-200 focus:border-blue-300 outline-none transition-all"
+                        placeholder="Contoh: Keutamaan Sedekah"
+                        value={currentData.temaCeramah || ""}
+                        onChange={(e) => updateField(activeDay, 'temaCeramah', e.target.value)}
+                        disabled={currentData.validated}
+                      />
+                    </div>
+                  </div>
+                </div>
+            </div>
+
             <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-200 text-center"><button onClick={() => toggleValidation(activeDay)} className="w-full py-2 bg-white border border-yellow-400 text-yellow-700 rounded-lg text-xs font-bold shadow-sm active:scale-95 transition">{currentData.validated ? 'Buka Validasi' : 'Tanda Tangan Orang Tua'}</button></div>
           </div>
         )}
