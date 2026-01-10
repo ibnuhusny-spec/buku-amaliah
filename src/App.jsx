@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Star, Moon, Sun, BookOpen, CheckCircle, Award, ChevronLeft, ChevronRight, User, Settings, Camera, X, Heart, MessageCircle, List, Trophy, AlertTriangle, Loader2, ArrowRight, Share2, Copy, Link as LinkIcon, Image as ImageIcon, Mic, PenTool, StopCircle, Play, Trash2, CloudUpload, Lock, LogOut, FileText, CheckSquare } from 'lucide-react';
+import { Star, Moon, Sun, BookOpen, CheckCircle, Award, ChevronLeft, ChevronRight, User, Settings, Camera, X, Heart, MessageCircle, List, Trophy, AlertTriangle, Loader2, ArrowRight, Share2, Copy, Image as ImageIcon, Mic, PenTool, StopCircle, Play, Trash2, CloudUpload, Lock, LogOut, FileText, CheckSquare, Smartphone } from 'lucide-react';
 
 // --- DATA STATIS ---
 const THEMES = {
@@ -48,12 +48,17 @@ const DAFTAR_DOA = [
   { judul: "35. Doa Masuk Pasar", arab: "لَا إِلَهَ إِلَّا اللهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ", latin: "Laa ilaaha illallaahu wahdahu laa syariika lah...", arti: "Tidak ada Tuhan yang berhak disembah selain Allah semata." }
 ];
 
-// --- HELPER ---
+const formatDate = (dateString) => {
+  if (!dateString) return "";
+  const options = { weekday: 'long', day: 'numeric', month: 'long' };
+  return new Date(dateString).toLocaleDateString('id-ID', options);
+};
+
 const getGregorianDate = (startDate, dayIndex) => {
   if (!startDate) return "";
   const date = new Date(startDate);
   date.setDate(date.getDate() + (dayIndex - 1));
-  return date.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' });
+  return formatDate(date);
 };
 
 const compressImage = (file) => {
@@ -86,10 +91,10 @@ const blobToBase64 = (blob) => {
 };
 
 // ==========================================
-// KOMPONEN UTAMA
+// KOMPONEN UTAMA (RESPONSIVE WRAPPER)
 // ==========================================
 export default function App() {
-  const [role, setRole] = useState('home'); // 'home', 'student', 'teacher_login', 'teacher'
+  const [role, setRole] = useState('home'); 
   const [scriptUrl, setScriptUrl] = useState('');
   const [schoolName, setSchoolName] = useState('Sekolah Dasar Islam Terpadu');
   const [logoUrl, setLogoUrl] = useState('');
@@ -109,18 +114,36 @@ export default function App() {
        setSchoolName(parsed.schoolName || 'Sekolah Dasar Islam Terpadu');
        setLogoUrl(parsed.logoUrl || '');
     } else {
-       // Coba ambil script URL dari local storage global jika ada
        const globalUrl = localStorage.getItem('ramadanScriptUrl');
        if (globalUrl) setScriptUrl(globalUrl);
     }
   }, []);
 
-  // --- HALAMAN UTAMA (HOME) ---
-  if (role === 'home') {
+  // --- CONTENT SWITCHER ---
+  const renderContent = () => {
+    if (role === 'home') return <HomeView setRole={setRole} schoolName={schoolName} logoUrl={logoUrl} />;
+    if (role === 'teacher_login') return <TeacherLogin setRole={setRole} scriptUrl={scriptUrl} setScriptUrl={setScriptUrl} />;
+    if (role === 'teacher') return <TeacherDashboard setRole={setRole} scriptUrl={scriptUrl} />;
+    if (role === 'student') return <StudentApp setRole={setRole} globalScriptUrl={scriptUrl} schoolName={schoolName} logoUrl={logoUrl} />;
+    return null;
+  };
+
+  // --- MOBILE WRAPPER (KUNCI TAMPILAN HP) ---
+  return (
+    <div className="flex justify-center bg-slate-900 min-h-screen">
+      <div className="w-full max-w-md bg-white shadow-2xl overflow-hidden min-h-screen relative">
+        {renderContent()}
+      </div>
+    </div>
+  );
+}
+
+// --- SUB COMPONENTS ---
+
+function HomeView({ setRole, schoolName, logoUrl }) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-emerald-600 to-emerald-800 flex flex-col items-center justify-center p-6 text-white font-sans">
-        <div className="bg-white/10 backdrop-blur-md p-6 rounded-3xl w-full max-w-sm border border-white/20 shadow-2xl text-center animate-in fade-in zoom-in duration-500">
-           {/* LOGO AREA */}
+        <div className="bg-white/10 backdrop-blur-md p-6 rounded-3xl w-full border border-white/20 shadow-xl text-center animate-in fade-in zoom-in duration-500">
            <div className="w-28 h-28 bg-white rounded-full mx-auto mb-5 flex items-center justify-center shadow-lg overflow-hidden border-4 border-emerald-200">
               <img 
                 src="/logo.png" 
@@ -144,37 +167,22 @@ export default function App() {
            </div>
            
            <div className="mt-8 pt-4 border-t border-white/10">
-              <p className="text-[10px] text-emerald-200/60">Versi Final 3.2 (Fix Duplicate)</p>
+              <p className="text-[10px] text-emerald-200/60">Versi Mobile 3.0</p>
            </div>
         </div>
       </div>
     );
-  }
-
-  if (role === 'teacher_login') return <TeacherLogin setRole={setRole} scriptUrl={scriptUrl} setScriptUrl={setScriptUrl} />;
-  if (role === 'teacher') return <TeacherDashboard setRole={setRole} scriptUrl={scriptUrl} />;
-  if (role === 'student') return <StudentApp setRole={setRole} globalScriptUrl={scriptUrl} schoolName={schoolName} logoUrl={logoUrl} />;
-  
-  return null;
 }
-
-// ==========================================
-// 1. MODUL GURU
-// ==========================================
 
 function TeacherLogin({ setRole, scriptUrl, setScriptUrl }) {
   const [pin, setPin] = useState('');
   const [localUrl, setLocalUrl] = useState(scriptUrl || '');
   
   const handleLogin = () => {
-    // PIN Sederhana
     if (pin === '1234') {
-      if (!localUrl) return alert("Mohon isi Link Script Guru terlebih dahulu agar aplikasi bisa mengambil data.");
-      
-      // Simpan URL ke state global & local storage
+      if (!localUrl) return alert("Mohon isi Link Script Guru terlebih dahulu.");
       setScriptUrl(localUrl);
       localStorage.setItem('ramadanScriptUrl', localUrl);
-      
       setRole('teacher');
     } else {
       alert('PIN Salah! (Hint: 1234)');
@@ -182,42 +190,27 @@ function TeacherLogin({ setRole, scriptUrl, setScriptUrl }) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4 font-sans">
-      <div className="bg-white p-6 rounded-3xl shadow-xl w-full max-w-sm text-center">
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-6 font-sans">
+      <div className="bg-white p-6 rounded-3xl shadow-xl w-full text-center">
         <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
            <Lock size={28} className="text-emerald-600"/>
         </div>
         <h2 className="text-xl font-bold text-slate-800 mb-1">Login Guru</h2>
-        <p className="text-xs text-slate-400 mb-6">Kelola laporan & nilai hafalan siswa.</p>
+        <p className="text-xs text-slate-400 mb-6">Kelola laporan siswa.</p>
         
-        {/* INPUT PIN */}
         <div className="mb-4 text-left">
            <label className="text-xs font-bold text-slate-500 ml-1 mb-1 block">PIN Akses</label>
-           <input 
-             type="number" 
-             value={pin} 
-             onChange={(e) => setPin(e.target.value)} 
-             placeholder="1234" 
-             className="w-full p-3 bg-slate-50 border rounded-xl text-center text-2xl font-bold outline-none focus:ring-2 focus:ring-emerald-500 tracking-widest" 
-           />
+           <input type="number" value={pin} onChange={(e) => setPin(e.target.value)} placeholder="1234" className="w-full p-3 bg-slate-50 border rounded-xl text-center text-2xl font-bold outline-none focus:ring-2 focus:ring-emerald-500 tracking-widest" />
         </div>
 
-        {/* INPUT URL SCRIPT (BARU) */}
         <div className="mb-6 text-left">
-           <label className="text-xs font-bold text-slate-500 ml-1 mb-1 block">Link Script Guru (Spreadsheet)</label>
-           <input 
-             type="text" 
-             value={localUrl} 
-             onChange={(e) => setLocalUrl(e.target.value)} 
-             placeholder="https://script.google.com/.../exec" 
-             className="w-full p-3 bg-slate-50 border rounded-xl text-xs font-mono text-slate-600 outline-none focus:border-emerald-500" 
-           />
-           <p className="text-[9px] text-slate-400 mt-1 ml-1">Paste link Web App dari Google Script di sini.</p>
+           <label className="text-xs font-bold text-slate-500 ml-1 mb-1 block">Link Script Guru</label>
+           <input type="text" value={localUrl} onChange={(e) => setLocalUrl(e.target.value)} placeholder="https://script.google.com/.../exec" className="w-full p-3 bg-slate-50 border rounded-xl text-xs font-mono text-slate-600 outline-none focus:border-emerald-500" />
         </div>
 
         <div className="flex gap-2">
-          <button onClick={() => setRole('home')} className="flex-1 py-3 bg-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-300 transition">Batal</button>
-          <button onClick={handleLogin} className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition shadow-lg shadow-emerald-200">Masuk</button>
+          <button onClick={() => setRole('home')} className="flex-1 py-3 bg-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-300">Batal</button>
+          <button onClick={handleLogin} className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 shadow-lg shadow-emerald-200">Masuk</button>
         </div>
       </div>
     </div>
@@ -252,21 +245,11 @@ function TeacherDashboard({ setRole, scriptUrl }) {
     setSaving(true);
     try {
       await fetch(scriptUrl, {
-        method: 'POST',
-        mode: 'no-cors',
-        body: JSON.stringify({
-          action: 'nilai',
-          nama: selectedStudent.nama,
-          hari: selectedStudent.hari,
-          nilaiGuru: nilaiInput,
-          koreksiGuru: koreksiInput
-        })
+        method: 'POST', mode: 'no-cors',
+        body: JSON.stringify({ action: 'nilai', nama: selectedStudent.nama, hari: selectedStudent.hari, nilaiGuru: nilaiInput, koreksiGuru: koreksiInput })
       });
-      alert("Nilai berhasil disimpan!");
-      setSelectedStudent(null);
-      fetchData(); 
-    } catch (e) { alert("Gagal menyimpan."); } 
-    finally { setSaving(false); }
+      alert("Nilai berhasil disimpan!"); setSelectedStudent(null); fetchData(); 
+    } catch (e) { alert("Gagal menyimpan."); } finally { setSaving(false); }
   };
 
   const openModal = (student) => {
@@ -284,49 +267,26 @@ function TeacherDashboard({ setRole, scriptUrl }) {
 
       <div className="p-4 space-y-3">
         {loading ? <div className="text-center py-10 text-slate-400">Memuat data...</div> : 
-         data.length === 0 ? <div className="text-center py-10 text-slate-400">Belum ada setoran masuk.</div> :
+         data.length === 0 ? <div className="text-center py-10 text-slate-400">Belum ada setoran.</div> :
          data.map((item, idx) => (
            <div key={idx} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
               <div className="flex justify-between items-start mb-2">
-                 <div>
-                    <h3 className="font-bold text-slate-800">{item.nama}</h3>
-                    <p className="text-xs text-slate-500">Hari ke-{item.hari} • {item.kelas}</p>
-                 </div>
+                 <div><h3 className="font-bold text-slate-800">{item.nama}</h3><p className="text-xs text-slate-500">Hari ke-{item.hari} • {item.kelas}</p></div>
                  <span className="bg-yellow-100 text-yellow-800 text-[10px] font-bold px-2 py-1 rounded-full">{item.poin} Poin</span>
               </div>
-              
-              <div className="flex gap-2 text-xs mb-3">
-                 <span className={item.puasa === '✅' ? "text-green-600" : "text-red-400"}>Puasa {item.puasa}</span> • 
-                 <span className={item.tarawih === '✅' ? "text-blue-600" : "text-red-400"}>Tarawih {item.tarawih}</span>
-              </div>
-              
-              <div className="bg-slate-50 p-2 rounded-lg text-xs text-slate-600 mb-3 font-mono">
-                 {item.rincian}
-              </div>
-
+              <div className="bg-slate-50 p-2 rounded-lg text-xs text-slate-600 mb-3 font-mono">{item.rincian}</div>
               {item.audio && item.audio !== '-' && (
                  <div className="mb-3 bg-blue-50 p-2 rounded-lg border border-blue-100 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                       <Play size={14} className="text-blue-600"/>
-                       <span className="text-xs font-bold text-blue-700">Rekaman Hafalan</span>
-                    </div>
+                    <div className="flex items-center gap-2"><Play size={14} className="text-blue-600"/><span className="text-xs font-bold text-blue-700">Rekaman</span></div>
                     <a href={item.audio} target="_blank" className="text-[10px] bg-blue-600 text-white px-2 py-1 rounded">Buka</a>
                  </div>
               )}
-
               {item.foto && item.foto !== '-' && (
-                 <div className="mb-3">
-                    <a href={item.foto} target="_blank" className="text-xs text-emerald-600 underline flex items-center gap-1"><ImageIcon size={12}/> Lihat Foto Bukti</a>
-                 </div>
+                 <div className="mb-3"><a href={item.foto} target="_blank" className="text-xs text-emerald-600 underline flex items-center gap-1"><ImageIcon size={12}/> Foto Bukti</a></div>
               )}
-
               <div className="border-t pt-2 mt-2 flex justify-between items-center">
-                 <div className="text-xs">
-                    {item.nilaiGuru ? <span className="text-green-600 font-bold">Nilai: {item.nilaiGuru}</span> : <span className="text-red-400 italic">Belum dinilai</span>}
-                 </div>
-                 <button onClick={() => openModal(item)} className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 active:scale-95 transition">
-                    <PenTool size={12}/> {item.nilaiGuru ? 'Edit' : 'Nilai'}
-                 </button>
+                 <div className="text-xs">{item.nilaiGuru ? <span className="text-green-600 font-bold">Nilai: {item.nilaiGuru}</span> : <span className="text-red-400 italic">Belum dinilai</span>}</div>
+                 <button onClick={() => openModal(item)} className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 active:scale-95 transition"><PenTool size={12}/> {item.nilaiGuru ? 'Edit' : 'Nilai'}</button>
               </div>
            </div>
          ))
@@ -335,36 +295,20 @@ function TeacherDashboard({ setRole, scriptUrl }) {
 
       {selectedStudent && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4">
-           <div className="bg-white w-full max-w-sm rounded-2xl p-5 animate-in slide-in-from-bottom-10">
-              <div className="flex justify-between items-center mb-4">
-                 <h3 className="font-bold text-lg">Nilai: {selectedStudent.nama}</h3>
-                 <button onClick={() => setSelectedStudent(null)}><X size={20} className="text-slate-400"/></button>
-              </div>
+           <div className="bg-white w-full rounded-2xl p-5 animate-in slide-in-from-bottom-10">
+              <div className="flex justify-between items-center mb-4"><h3 className="font-bold text-lg">Nilai: {selectedStudent.nama}</h3><button onClick={() => setSelectedStudent(null)}><X size={20} className="text-slate-400"/></button></div>
               <div className="space-y-3 mb-4">
-                 <div>
-                    <label className="text-xs font-bold text-slate-500 block mb-1">Nilai (Angka/Huruf)</label>
-                    <input type="text" value={nilaiInput} onChange={(e) => setNilaiInput(e.target.value)} className="w-full p-2 border rounded-lg" placeholder="Contoh: 90 / A" />
-                 </div>
-                 <div>
-                    <label className="text-xs font-bold text-slate-500 block mb-1">Koreksi / Komentar</label>
-                    <textarea rows="3" value={koreksiInput} onChange={(e) => setKoreksiInput(e.target.value)} className="w-full p-2 border rounded-lg text-sm" placeholder="Catatan untuk siswa..." />
-                 </div>
+                 <div><label className="text-xs font-bold text-slate-500 block mb-1">Nilai</label><input type="text" value={nilaiInput} onChange={(e) => setNilaiInput(e.target.value)} className="w-full p-2 border rounded-lg" placeholder="Contoh: 90 / A" /></div>
+                 <div><label className="text-xs font-bold text-slate-500 block mb-1">Koreksi</label><textarea rows="3" value={koreksiInput} onChange={(e) => setKoreksiInput(e.target.value)} className="w-full p-2 border rounded-lg text-sm" placeholder="Catatan..." /></div>
               </div>
-              <button onClick={handleSimpanNilai} disabled={saving} className="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold flex justify-center items-center gap-2">
-                 {saving ? <Loader2 className="animate-spin"/> : <CheckSquare size={18}/>} Simpan Nilai
-              </button>
+              <button onClick={handleSimpanNilai} disabled={saving} className="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold flex justify-center items-center gap-2">{saving ? <Loader2 className="animate-spin"/> : <CheckSquare size={18}/>} Simpan</button>
            </div>
         </div>
       )}
-
       <button onClick={() => setRole('home')} className="fixed bottom-4 right-4 bg-red-500 text-white p-3 rounded-full shadow-lg"><LogOut size={20}/></button>
     </div>
   );
 }
-
-// ==========================================
-// 2. MODUL MURID
-// ==========================================
 
 function StudentApp({ setRole, globalScriptUrl, schoolName }) {
   const [activeDay, setActiveDay] = useState(1);
@@ -372,7 +316,6 @@ function StudentApp({ setRole, globalScriptUrl, schoolName }) {
   const [userData, setUserData] = useState({});
   const [studentProfile, setStudentProfile] = useState({ name: '', class: '', scriptUrl: globalScriptUrl || '' });
   
-  // UI States
   const [showConfetti, setShowConfetti] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -382,7 +325,6 @@ function StudentApp({ setRole, globalScriptUrl, schoolName }) {
   const [shareLinkCopied, setShareLinkCopied] = useState(false);
   const [logoError, setLogoError] = useState(false);
 
-  // Audio States
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState(null);
   const [audioUrl, setAudioUrl] = useState(null);
@@ -391,22 +333,17 @@ function StudentApp({ setRole, globalScriptUrl, schoolName }) {
   const mediaRecorderRef = useRef(null);
   const timerRef = useRef(null);
 
-  // Raport State
   const [raportData, setRaportData] = useState([]);
   const [loadingRaport, setLoadingRaport] = useState(false);
 
-  const currentTheme = THEMES['emerald']; 
   const currentDateGregorian = getGregorianDate(studentProfile.startDateRamadan || '2026-02-18', activeDay);
 
-  // --- LOGIC ---
   const triggerConfetti = () => { setShowConfetti(true); setTimeout(() => setShowConfetti(false), 3000); };
   
   useEffect(() => {
-     // Init Data Harian
      const savedData = localStorage.getItem('ramadanJournalData');
      if (savedData) {
         const parsed = JSON.parse(savedData);
-        // Ensure structure
         for(let i=1; i<=30; i++) {
            if(!parsed[i]) parsed[i] = {};
            ['salatMalam','kosakata','witir','namaPenceramah','temaCeramah'].forEach(f => {
@@ -417,16 +354,10 @@ function StudentApp({ setRole, globalScriptUrl, schoolName }) {
      } else {
         const init = {};
         for(let i=1; i<=30; i++) {
-           init[i] = { 
-              puasa: false, subuh: false, zuhur: false, ashar: false, maghrib: false, isya: false, 
-              tarawih: false, witir: false, tadarus: false, salatMalam: false, kosakata: false, 
-              bantuIbu: false, hafalDoa: "", amalanLain: "", amalanLainCheck: false,
-              namaPenceramah: "", temaCeramah: "", validated: false 
-           };
+           init[i] = { puasa: false, subuh: false, zuhur: false, ashar: false, maghrib: false, isya: false, tarawih: false, witir: false, tadarus: false, salatMalam: false, kosakata: false, bantuIbu: false, hafalDoa: "", amalanLain: "", amalanLainCheck: false, namaPenceramah: "", temaCeramah: "", validated: false };
         }
         setUserData(init);
      }
-
      const savedProfile = localStorage.getItem('ramadanProfile');
      if (savedProfile) {
         const p = JSON.parse(savedProfile);
@@ -439,12 +370,10 @@ function StudentApp({ setRole, globalScriptUrl, schoolName }) {
   useEffect(() => { if (Object.keys(userData).length > 0) localStorage.setItem('ramadanJournalData', JSON.stringify(userData)); }, [userData]);
   useEffect(() => { localStorage.setItem('ramadanProfile', JSON.stringify(studentProfile)); }, [studentProfile]);
 
-  // --- HELPER HANDLERS ---
   const toggleCheck = (day, field) => { if (userData[day]?.validated) return; setUserData(prev => ({ ...prev, [day]: { ...prev[day], [field]: !prev[day][field] } })); };
   const updateField = (day, field, value) => { if (userData[day]?.validated) return; setUserData(prev => ({ ...prev, [day]: { ...prev[day], [field]: value } })); };
   const toggleValidation = (day) => { setUserData(prev => ({ ...prev, [day]: { ...prev[day], validated: !prev[day].validated } })); if (!userData[day].validated) triggerConfetti(); };
   
-  // --- MEDIA HANDLERS ---
   const handleImageUpload = async (e) => { const file = e.target.files[0]; if(file) { setIsCompressing(true); setSelectedImage(file.name); try { const b64 = await compressImage(file); setBase64Image(b64); } catch(e){} finally { setIsCompressing(false); } } };
   const removeImage = () => { setSelectedImage(null); setBase64Image(""); };
 
@@ -469,7 +398,6 @@ function StudentApp({ setRole, globalScriptUrl, schoolName }) {
   const stopRecording = () => { if(mediaRecorderRef.current) { mediaRecorderRef.current.stop(); setIsRecording(false); clearInterval(timerRef.current); } };
   const deleteRecording = () => { setAudioBlob(null); setAudioUrl(null); setRecordingTime(0); };
 
-  // --- SCORE & SEND ---
   const calculateDailyScore = (dayData) => {
     let score = 0; if (!dayData) return 0;
     if (dayData.puasa) score += 20; if (dayData.subuh) score += 10; if (dayData.zuhur) score += 10; if (dayData.ashar) score += 10; if (dayData.maghrib) score += 10; if (dayData.isya) score += 10;
@@ -521,7 +449,6 @@ function StudentApp({ setRole, globalScriptUrl, schoolName }) {
      finally { setIsSubmitting(false); }
   };
 
-  // --- FETCH RAPORT ---
   const fetchRaport = async () => {
     if (!studentProfile.scriptUrl) return;
     setLoadingRaport(true);
@@ -534,9 +461,15 @@ function StudentApp({ setRole, globalScriptUrl, schoolName }) {
   };
   useEffect(() => { if (view === 'raport') fetchRaport(); }, [view]);
 
-  // --- GENERATE SHARE LINK ---
+  const generateShareLink = () => {
+    if (!studentProfile.scriptUrl) return "";
+    const baseUrl = window.location.origin + window.location.pathname;
+    const encodedScript = encodeURIComponent(studentProfile.scriptUrl);
+    return `${baseUrl}?guru=${encodedScript}`;
+  };
+
   const copyShareLink = () => {
-      const link = `${window.location.origin}${window.location.pathname}?guru=${encodeURIComponent(studentProfile.scriptUrl)}`;
+      const link = generateShareLink();
       const textArea = document.createElement("textarea");
       textArea.value = link;
       textArea.style.position = 'fixed'; textArea.style.left = '-9999px';
@@ -545,31 +478,22 @@ function StudentApp({ setRole, globalScriptUrl, schoolName }) {
       document.body.removeChild(textArea);
   };
 
-  // --- RENDER ---
   if (view === 'cover') {
      return (
-        <div className="min-h-screen bg-emerald-50 p-6 flex flex-col items-center justify-center text-center">
-           <div className="bg-white p-6 rounded-3xl shadow-xl w-full max-w-sm">
+        <div className="min-h-screen bg-emerald-50 p-6 flex flex-col items-center justify-center text-center font-sans">
+           <div className="bg-white p-6 rounded-3xl shadow-xl w-full">
               <h1 className="text-xl font-bold text-emerald-800 mb-2">Halo, Murid Sholeh!</h1>
               <input type="text" className="w-full p-3 border rounded-xl mb-3" placeholder="Nama Lengkap" value={studentProfile.name} onChange={e => setStudentProfile({...studentProfile, name: e.target.value})} />
               <input type="text" className="w-full p-3 border rounded-xl mb-6" placeholder="Kelas" value={studentProfile.class} onChange={e => setStudentProfile({...studentProfile, class: e.target.value})} />
               
               <div className="bg-yellow-50 p-3 rounded-xl border border-yellow-200 mb-6 text-left">
                  <p className="text-[10px] font-bold text-slate-500 mb-1">Link Guru:</p>
-                 {studentProfile.scriptUrl ? 
-                    <div className="text-xs text-green-600 truncate mb-2">✅ Terhubung</div> : 
-                    <div className="text-xs text-red-500 mb-2">❌ Belum ada</div>
-                 }
+                 {studentProfile.scriptUrl ? <div className="text-xs text-green-600 truncate mb-2">✅ Terhubung</div> : <div className="text-xs text-red-500 mb-2">❌ Belum ada</div>}
                  <button onClick={() => setShowSettings(!showSettings)} className="text-[10px] text-blue-500 underline">Ubah Link Manual</button>
                  {showSettings && (
                     <div className="mt-2">
                        <input type="text" className="w-full p-1 text-xs border mb-2" value={studentProfile.scriptUrl} onChange={e => setStudentProfile({...studentProfile, scriptUrl: e.target.value})} placeholder="https://script.google..." />
-                       <div className="flex gap-2">
-                          <button onClick={copyShareLink} className="flex-1 bg-blue-100 text-blue-700 py-1 px-2 rounded text-[10px] flex items-center justify-center gap-1 font-bold">
-                             {shareLinkCopied ? <CheckCircle size={10}/> : <Share2 size={10}/>} Bagikan ke Teman
-                          </button>
-                       </div>
-                       <p className="text-[9px] text-slate-400 mt-1 italic">Link ini agar temanmu otomatis terhubung ke Guru yang sama.</p>
+                       <div className="flex gap-2"><button onClick={copyShareLink} className="flex-1 bg-blue-100 text-blue-700 py-1 px-2 rounded text-[10px] flex items-center justify-center gap-1 font-bold">{shareLinkCopied ? <CheckCircle size={10}/> : <Share2 size={10}/>} Bagikan ke Teman</button></div>
                     </div>
                  )}
               </div>
@@ -594,7 +518,7 @@ function StudentApp({ setRole, globalScriptUrl, schoolName }) {
        </div>
 
        <div className="px-4 -mt-4 relative z-10">
-         <div className="bg-white p-1 rounded-xl shadow-md flex mb-4 text-[10px] font-bold text-center border border-slate-100">
+         <div className="bg-white p-1 rounded-xl shadow-md flex mb-4 text-[10px] font-bold text-center border border-slate-100 overflow-x-auto">
              {['journal', 'doa', 'hafalan', 'raport', 'achievements'].map(m => (
                 <button key={m} onClick={() => setView(m)} className={`flex-1 py-2 px-1 capitalize rounded-lg ${view===m ? 'bg-emerald-100 text-emerald-700' : 'text-slate-400'}`}>
                     {m === 'achievements' ? 'Lapor' : m}
@@ -602,45 +526,21 @@ function StudentApp({ setRole, globalScriptUrl, schoolName }) {
              ))}
          </div>
 
-         {/* --- JOURNAL VIEW --- */}
          {view === 'journal' && (
            <div className="space-y-4 animate-in fade-in">
              <div className="flex items-center justify-between bg-white p-2 rounded-xl shadow-sm"><button onClick={() => setActiveDay(d => Math.max(1, d - 1))} className="p-2 bg-slate-50 rounded-lg"><ChevronLeft size={16}/></button><div className="text-center"><div className="font-bold text-slate-800">Hari ke-{activeDay}</div><div className="text-[10px] text-slate-500">{currentDateGregorian}</div></div><button onClick={() => setActiveDay(d => Math.min(30, d + 1))} className="p-2 bg-slate-50 rounded-lg"><ChevronRight size={16}/></button></div>
              {userData[activeDay]?.validated && <div className="bg-green-100 text-green-700 p-2 rounded-lg text-xs font-bold text-center">✅ Data sudah divalidasi</div>}
-             
              <div onClick={() => toggleCheck(activeDay, 'puasa')} className={`p-4 rounded-2xl border-2 flex justify-between items-center transition-all ${userData[activeDay]?.puasa ? 'bg-orange-50 border-orange-400' : 'bg-white border-slate-100'}`}>
                 <div className="flex items-center gap-3"><div className={`p-2 rounded-full ${userData[activeDay]?.puasa ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-300'}`}><Sun size={20}/></div><span className="font-bold text-slate-700">Puasa Penuh (+20)</span></div>
                 {userData[activeDay]?.puasa && <CheckCircle className="text-orange-500" size={20}/>}
              </div>
-
-             <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                <h3 className="text-xs font-bold text-slate-400 uppercase mb-3">Shalat Wajib (+10)</h3>
-                <div className="flex gap-2 overflow-x-auto pb-2">
-                   {['Subuh','Zuhur','Ashar','Maghrib','Isya'].map(s => (
-                      <button key={s} onClick={() => toggleCheck(activeDay, s.toLowerCase())} className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold border ${userData[activeDay]?.[s.toLowerCase()] ? 'bg-blue-500 text-white border-blue-500' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>{s}</button>
-                   ))}
-                </div>
-             </div>
-
-             <div className="grid grid-cols-2 gap-3">
-                 <div onClick={() => toggleCheck(activeDay, 'tarawih')} className={`p-3 rounded-xl border-2 text-center cursor-pointer ${userData[activeDay]?.tarawih ? 'bg-indigo-50 border-indigo-500' : 'bg-white border-slate-100'}`}><Moon size={20} className={`mx-auto mb-1 ${userData[activeDay]?.tarawih ? 'text-indigo-600' : 'text-slate-300'}`}/><span className="text-xs font-bold">Tarawih</span></div>
-                 <div onClick={() => toggleCheck(activeDay, 'salatMalam')} className={`p-3 rounded-xl border-2 text-center cursor-pointer ${userData[activeDay]?.salatMalam ? 'bg-purple-50 border-purple-500' : 'bg-white border-slate-100'}`}><Star size={20} className={`mx-auto mb-1 ${userData[activeDay]?.salatMalam ? 'text-purple-600' : 'text-slate-300'}`}/><span className="text-xs font-bold">Tahajud</span></div>
-             </div>
-
-             {/* JURNAL CERAMAH */}
-             <div className="bg-white p-4 rounded-2xl border border-slate-100">
-                 <h3 className="text-xs font-bold text-slate-400 uppercase mb-3 flex items-center gap-1"><Mic size={12}/> Jurnal Ceramah</h3>
-                 <div className="space-y-2">
-                    <input type="text" className="w-full text-xs p-2 bg-slate-50 rounded-lg border-none" placeholder="Nama Penceramah (+5)" value={userData[activeDay]?.namaPenceramah || ''} onChange={e => updateField(activeDay, 'namaPenceramah', e.target.value)} />
-                    <input type="text" className="w-full text-xs p-2 bg-slate-50 rounded-lg border-none" placeholder="Tema Ceramah (+10)" value={userData[activeDay]?.temaCeramah || ''} onChange={e => updateField(activeDay, 'temaCeramah', e.target.value)} />
-                 </div>
-             </div>
-
+             <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100"><h3 className="text-xs font-bold text-slate-400 uppercase mb-3">Shalat Wajib (+10)</h3><div className="flex gap-2 overflow-x-auto pb-2">{['Subuh','Zuhur','Ashar','Maghrib','Isya'].map(s => (<button key={s} onClick={() => toggleCheck(activeDay, s.toLowerCase())} className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold border ${userData[activeDay]?.[s.toLowerCase()] ? 'bg-blue-500 text-white border-blue-500' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>{s}</button>))}</div></div>
+             <div className="grid grid-cols-2 gap-3"><div onClick={() => toggleCheck(activeDay, 'tarawih')} className={`p-3 rounded-xl border-2 text-center cursor-pointer ${userData[activeDay]?.tarawih ? 'bg-indigo-50 border-indigo-500' : 'bg-white border-slate-100'}`}><Moon size={20} className={`mx-auto mb-1 ${userData[activeDay]?.tarawih ? 'text-indigo-600' : 'text-slate-300'}`}/><span className="text-xs font-bold">Tarawih</span></div><div onClick={() => toggleCheck(activeDay, 'salatMalam')} className={`p-3 rounded-xl border-2 text-center cursor-pointer ${userData[activeDay]?.salatMalam ? 'bg-purple-50 border-purple-500' : 'bg-white border-slate-100'}`}><Star size={20} className={`mx-auto mb-1 ${userData[activeDay]?.salatMalam ? 'text-purple-600' : 'text-slate-300'}`}/><span className="text-xs font-bold">Tahajud</span></div></div>
+             <div className="bg-white p-4 rounded-2xl border border-slate-100"><h3 className="text-xs font-bold text-slate-400 uppercase mb-3 flex items-center gap-1"><Mic size={12}/> Jurnal Ceramah</h3><div className="space-y-2"><input type="text" className="w-full text-xs p-2 bg-slate-50 rounded-lg border-none" placeholder="Nama Penceramah (+5)" value={userData[activeDay]?.namaPenceramah || ''} onChange={e => updateField(activeDay, 'namaPenceramah', e.target.value)} /><input type="text" className="w-full text-xs p-2 bg-slate-50 rounded-lg border-none" placeholder="Tema Ceramah (+10)" value={userData[activeDay]?.temaCeramah || ''} onChange={e => updateField(activeDay, 'temaCeramah', e.target.value)} /></div></div>
              <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-200 text-center"><button onClick={() => toggleValidation(activeDay)} className="w-full py-2 bg-white border border-yellow-400 text-yellow-700 rounded-lg text-xs font-bold">{userData[activeDay]?.validated ? 'Buka Validasi' : 'Tanda Tangan Orang Tua'}</button></div>
            </div>
          )}
 
-         {/* --- HAFALAN VIEW --- */}
          {view === 'hafalan' && (
             <div className="bg-white p-6 rounded-2xl text-center shadow-sm animate-in fade-in">
                 <Mic size={40} className="mx-auto text-emerald-500 mb-2"/>
@@ -649,30 +549,16 @@ function StudentApp({ setRole, globalScriptUrl, schoolName }) {
                 {!audioUrl ? <button onClick={isRecording ? stopRecording : startRecording} className={`w-full py-6 rounded-2xl text-white font-bold text-lg flex items-center justify-center gap-2 shadow-lg ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-blue-600'}`}>{isRecording ? <StopCircle/> : <Mic/>} {isRecording ? 'Stop Rekam' : 'Mulai Rekam'}</button> : 
                 <div className="space-y-3">
                    <div className="bg-slate-100 p-3 rounded-xl flex items-center gap-2"><Play className="text-blue-500" size={20}/> <span className="text-xs font-bold">Rekaman Siap</span></div>
-                   <div className="flex gap-2">
-                     <button onClick={deleteRecording} className="flex-1 py-3 text-red-500 bg-red-50 rounded-xl font-bold text-xs">Hapus</button>
-                     <button onClick={() => {const a = new Audio(audioUrl); a.play()}} className="flex-1 py-3 text-blue-500 bg-blue-50 rounded-xl font-bold text-xs">Dengar</button>
-                   </div>
+                   <div className="flex gap-2"><button onClick={deleteRecording} className="flex-1 py-3 text-red-500 bg-red-50 rounded-xl font-bold text-xs">Hapus</button><button onClick={() => {const a = new Audio(audioUrl); a.play()}} className="flex-1 py-3 text-blue-500 bg-blue-50 rounded-xl font-bold text-xs">Dengar</button></div>
                    <button onClick={sendData} disabled={isSubmitting} className="w-full bg-green-600 text-white py-3 rounded-xl font-bold flex justify-center gap-2 mt-2">{isSubmitting ? <Loader2 className="animate-spin"/> : <CloudUpload/>} Kirim Hafalan</button>
                 </div>}
             </div>
          )}
          
-         {/* --- DOA VIEW --- */}
          {view === 'doa' && (
-           <div className="space-y-3 pb-10">
-             {DAFTAR_DOA.map((doa, i) => (
-                <div key={i} className="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
-                  <h3 className="font-bold text-sm text-slate-700 mb-2">{doa.judul}</h3>
-                  <p className="text-right font-serif text-lg leading-loose mb-2 text-slate-800">{doa.arab}</p>
-                  <p className="text-xs italic text-slate-500 border-t pt-2">{doa.latin}</p>
-                  <p className="text-xs text-slate-600 mt-1">{doa.arti}</p>
-                </div>
-             ))}
-           </div>
+           <div className="space-y-3 pb-10">{DAFTAR_DOA.map((doa, i) => (<div key={i} className="bg-white p-4 rounded-xl shadow-sm border border-slate-100"><h3 className="font-bold text-sm text-slate-700 mb-2">{doa.judul}</h3><p className="text-right font-serif text-lg leading-loose mb-2 text-slate-800">{doa.arab}</p><p className="text-xs italic text-slate-500 border-t pt-2">{doa.latin}</p><p className="text-xs text-slate-600 mt-1">{doa.arti}</p></div>))}</div>
          )}
 
-         {/* --- LAPOR VIEW --- */}
          {view === 'achievements' && (
            <div className="bg-white p-5 rounded-2xl shadow-sm text-center border border-slate-100">
               <h2 className="text-lg font-bold mb-1">Lapor Harian</h2>
@@ -686,7 +572,6 @@ function StudentApp({ setRole, globalScriptUrl, schoolName }) {
            </div>
          )}
          
-         {/* --- RAPORT VIEW --- */}
          {view === 'raport' && (
             <div className="space-y-3 pb-10">
                <h2 className="font-bold text-emerald-800 flex items-center gap-2 mb-2"><FileText size={18}/> Riwayat & Nilai</h2>
