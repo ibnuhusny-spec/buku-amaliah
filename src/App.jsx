@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Star, Moon, Sun, BookOpen, CheckCircle, Award, ChevronLeft, ChevronRight, User, Settings, Camera, X, Heart, MessageCircle, List, Trophy, AlertTriangle, Loader2, ArrowRight, Share2, Copy, Link as LinkIcon, Image as ImageIcon, Mic, PenTool, StopCircle, Play, Trash2 } from 'lucide-react';
+import { Star, Moon, Sun, BookOpen, CheckCircle, Award, ChevronLeft, ChevronRight, User, Settings, Camera, X, Heart, MessageCircle, List, Trophy, AlertTriangle, Loader2, ArrowRight, Share2, Copy, Link as LinkIcon, Image as ImageIcon, Mic, PenTool, StopCircle, Play, Trash2, CloudUpload } from 'lucide-react';
 
 // --- DATA: KOLEKSI DOA (HISNUL MUSLIM VERIFIED - 35 DOA) ---
 const DAFTAR_DOA = [
