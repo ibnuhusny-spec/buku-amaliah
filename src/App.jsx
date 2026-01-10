@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Star, Moon, Sun, BookOpen, CheckCircle, Award, ChevronLeft, ChevronRight, User, Settings, Camera, X, Heart, MessageCircle, List, Trophy, AlertTriangle, Loader2, ArrowRight, Share2, Copy, Link as LinkIcon, Image as ImageIcon, Mic, PenTool } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Star, Moon, Sun, BookOpen, CheckCircle, Award, ChevronLeft, ChevronRight, User, Settings, Camera, X, Heart, MessageCircle, List, Trophy, AlertTriangle, Loader2, ArrowRight, Share2, Copy, Link as LinkIcon, Image as ImageIcon, Mic, PenTool, StopCircle, Play, Trash2 } from 'lucide-react';
 
-// --- DATA: KOLEKSI DOA (HISNUL MUSLIM VERIFIED) ---
+// --- DATA: KOLEKSI DOA (HISNUL MUSLIM VERIFIED - 35 DOA) ---
 const DAFTAR_DOA = [
   { judul: "1. Doa Saat Bangun Tidur", arab: "الْحَمْدُ لِلَّهِ الَّذِي أَحْيَانَا بَعْدَ مَا أَمَاتَنَا وَإِلَيْهِ النُّشُورُ", latin: "Alhamdu lillahil-ladzi ahyana ba'da ma amatana wa ilaihin-nushur.", arti: "Segala puji bagi Allah yang menghidupkan kami kembali setelah mematikan kami dan kepada-Nya (kami) akan dibangkitkan." },
   { judul: "2. Doa Mengenakan Pakaian", arab: "الْحَمْدُ لِلَّهِ الَّذِي كَسَانِي هَذَا (الثَّوْبَ) وَرَزَقَنِيهِ مِنْ غَيْرِ حَوْلٍ مِنِّي وَلَا قُوَّةٍ", latin: "Alhamdu lillahil-ladzi kasani hadza (ats-tsauba) wa razaqanihi min ghairi haulin minni wa la quwwah.", arti: "Segala puji bagi Allah yang telah memakaikan pakaian ini kepadaku dan mengaruniakannya kepadaku tanpa daya dan kekuatan dariku." },
@@ -108,6 +108,15 @@ export default function App() {
   const [logoError, setLogoError] = useState(false);
   const [shareLinkCopied, setShareLinkCopied] = useState(false);
 
+  // --- AUDIO STATES ---
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioBlob, setAudioBlob] = useState(null);
+  const [audioUrl, setAudioUrl] = useState(null);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [namaSurah, setNamaSurah] = useState("");
+  const mediaRecorderRef = useRef(null);
+  const timerRef = useRef(null);
+
   const currentTheme = THEMES[studentProfile.theme] || THEMES.emerald;
   const isScriptUrlValid = (url) => { if (!url) return false; return url.includes('script.google.com') && url.endsWith('/exec'); };
 
@@ -187,6 +196,68 @@ export default function App() {
   const handleImageUpload = async (e) => { const file = e.target.files[0]; if (file) { setIsCompressing(true); setSelectedImage(file.name); try { const compressedBase64 = await compressImage(file); setBase64Image(compressedBase64); } catch (error) { alert("Gagal memproses gambar."); } finally { setIsCompressing(false); } } };
   const removeImage = () => { setSelectedImage(null); setBase64Image(""); };
 
+  // --- AUDIO LOGIC ---
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const options = { mimeType: 'audio/webm;codecs=opus', audioBitsPerSecond: 32000 }; // Hemat Kuota
+      const mediaRecorder = new MediaRecorder(stream, MediaRecorder.isTypeSupported(options.mimeType) ? options : {});
+      
+      mediaRecorderRef.current = mediaRecorder;
+      const chunks = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'audio/webm' });
+        const url = URL.createObjectURL(blob);
+        setAudioBlob(blob);
+        setAudioUrl(url);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+      timerRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+
+    } catch (err) {
+      alert("Gagal mengakses mikrofon. Pastikan izin diberikan.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      clearInterval(timerRef.current);
+    }
+  };
+
+  const deleteRecording = () => {
+    setAudioBlob(null);
+    setAudioUrl(null);
+    setRecordingTime(0);
+  };
+
+  const blobToBase64 = (blob) => {
+    return new Promise((resolve, _) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.readAsDataURL(blob);
+    });
+  };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
   // --- GENERATE LINK UNTUK GURU ---
   const generateShareLink = () => {
     if (!studentProfile.scriptUrl) return "";
@@ -209,7 +280,6 @@ export default function App() {
         setShareLinkCopied(true);
         setTimeout(() => setShareLinkCopied(false), 3000);
       } catch (err) {
-        console.error('Gagal menyalin:', err);
         alert('Gagal menyalin otomatis. Silakan salin manual.');
       }
       document.body.removeChild(textArea);
@@ -236,26 +306,58 @@ export default function App() {
     const scriptUrl = studentProfile.scriptUrl ? studentProfile.scriptUrl.trim() : "";
     if (!scriptUrl) return alert("⚠️ Link Laporan Guru belum diisi!");
     if (!scriptUrl.includes('/exec')) return alert("⚠️ Link Script SALAH! Harus berakhiran '/exec'.");
+    
+    // Validasi Hafalan
+    if (view === 'hafalan') {
+        if (!audioBlob) return alert("Rekam hafalan dulu!");
+        if (!namaSurah) return alert("Isi nama surah/hafalan dulu!");
+    }
+
     setIsSubmitting(true); setSubmitStatus(null);
     try {
       const currentDayData = userData[activeDay];
-      let catatanLengkap = [];
-      if (currentDayData.salatMalam) catatanLengkap.push("✅ Salat Malam");
-      if (currentDayData.tarawih) catatanLengkap.push("✅ Tarawih");
-      if (currentDayData.witir) catatanLengkap.push("✅ Witir");
-      if (currentDayData.kosakata) catatanLengkap.push("✅ Hafal Kosakata");
-      if (currentDayData.bantuIbu) catatanLengkap.push("✅ Bantu Ibu");
-      if (currentDayData.hafalDoa) catatanLengkap.push(`✅ Doa: ${currentDayData.hafalDoa}`);
-      
-      // TAMBAHAN CERAMAH DI LAPORAN
-      if (currentDayData.namaPenceramah) catatanLengkap.push(`🗣️ Penceramah: ${currentDayData.namaPenceramah}`);
-      if (currentDayData.temaCeramah) catatanLengkap.push(`📝 Tema: ${currentDayData.temaCeramah}`);
-      
-      if (currentDayData.amalanLainCheck && currentDayData.amalanLain) catatanLengkap.push(`✅ Extra: ${currentDayData.amalanLain}`);
-      
-      const payload = { nama: studentProfile.name, kelas: studentProfile.class, hari: activeDay, poin: calculateDailyScore(currentDayData, activeDay), puasa: currentDayData.puasa, tarawih: currentDayData.tarawih, kebaikan: catatanLengkap.join(", "), foto: base64Image, namaFoto: selectedImage };
+      let payload = {};
+
+      if (view === 'hafalan') {
+         const audioBase64 = await blobToBase64(audioBlob);
+         payload = {
+            nama: studentProfile.name,
+            kelas: studentProfile.class,
+            hari: activeDay,
+            poin: calculateDailyScore(currentDayData, activeDay),
+            audio: audioBase64,
+            namaSurah: namaSurah,
+            kebaikan: `🎤 Setor Hafalan: ${namaSurah}`,
+            puasa: currentDayData.puasa,
+            tarawih: currentDayData.tarawih
+         };
+      } else {
+         let catatanLengkap = [];
+         if (currentDayData.salatMalam) catatanLengkap.push("✅ Salat Malam");
+         if (currentDayData.tarawih) catatanLengkap.push("✅ Tarawih");
+         if (currentDayData.witir) catatanLengkap.push("✅ Witir");
+         if (currentDayData.kosakata) catatanLengkap.push("✅ Hafal Kosakata");
+         if (currentDayData.bantuIbu) catatanLengkap.push("✅ Bantu Ibu");
+         if (currentDayData.hafalDoa) catatanLengkap.push(`✅ Doa: ${currentDayData.hafalDoa}`);
+         if (currentDayData.namaPenceramah) catatanLengkap.push(`🗣️ Penceramah: ${currentDayData.namaPenceramah}`);
+         if (currentDayData.temaCeramah) catatanLengkap.push(`📝 Tema: ${currentDayData.temaCeramah}`);
+         if (currentDayData.amalanLainCheck && currentDayData.amalanLain) catatanLengkap.push(`✅ Extra: ${currentDayData.amalanLain}`);
+         
+         payload = { 
+            nama: studentProfile.name, kelas: studentProfile.class, hari: activeDay, 
+            poin: calculateDailyScore(currentDayData, activeDay), 
+            puasa: currentDayData.puasa, tarawih: currentDayData.tarawih, 
+            kebaikan: catatanLengkap.join(", "), 
+            foto: base64Image, namaFoto: selectedImage 
+         };
+      }
+
       await fetch(scriptUrl, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) });
-      setSubmitStatus('success'); triggerConfetti(); alert(`✅ Alhamdulillah! Laporan Hari ke-${activeDay} berhasil dikirim.`); removeImage();
+      setSubmitStatus('success'); triggerConfetti(); 
+      alert(view === 'hafalan' ? "✅ Hafalan berhasil dikirim!" : `✅ Laporan Hari ke-${activeDay} berhasil dikirim.`);
+      if(view === 'achievements') removeImage();
+      if(view === 'hafalan') deleteRecording();
+
     } catch (error) { console.error(error); setSubmitStatus('error'); alert("❌ Gagal mengirim data."); } finally { setIsSubmitting(false); }
   };
 
@@ -357,14 +459,14 @@ export default function App() {
             <p className="mt-4 text-xs font-bold text-slate-400 uppercase tracking-widest">{studentProfile.schoolName}</p>
           </div>
           <div className="absolute bottom-2 left-0 w-full text-center">
-             <span className="text-[10px] text-slate-400 font-mono">Versi Final 2.3 (Ceramah + Share Fix)</span>
+             <span className="text-[10px] text-slate-400 font-mono">Versi Final 2.3 (Hafalan + Ceramah)</span>
           </div>
         </div>
       </div>
     );
   }
 
-  // 2. HALAMAN UTAMA (JURNAL, LAPOR, DOA)
+  // --- RENDER UTAMA ---
   return (
     <div className={`min-h-screen ${currentTheme.bg} font-sans text-slate-800 pb-20`}>
       <div className={`${currentTheme.header} text-white p-5 pb-8 rounded-b-3xl shadow-lg relative z-10`}>
@@ -372,11 +474,54 @@ export default function App() {
         <div className="bg-yellow-400 text-yellow-900 p-3 rounded-2xl shadow-lg border-b-4 border-yellow-600 flex flex-col items-center transform scale-100 transition-transform"><div className="flex items-center gap-2"><Trophy size={24} className="fill-yellow-100 text-yellow-800" /><span className="text-xs font-bold uppercase tracking-widest text-yellow-800">Total Poin</span></div><span className="text-4xl font-black mt-1 leading-none">{totalScore}</span></div>
       </div>
       <div className="px-4 -mt-4 relative z-20 max-w-md mx-auto">
-        <div className="bg-white p-1 rounded-xl shadow-md flex mb-4 text-xs font-bold text-center border border-slate-100">
-             <button onClick={() => setView('journal')} className={`flex-1 py-2 rounded-lg ${view === 'journal' ? `${currentTheme.bg} ${currentTheme.textLight}` : 'text-slate-400'}`}>Jurnal</button>
-             <button onClick={() => setView('doa')} className={`flex-1 py-2 rounded-lg ${view === 'doa' ? `${currentTheme.bg} ${currentTheme.textLight}` : 'text-slate-400'}`}>Doa</button>
-             <button onClick={() => setView('achievements')} className={`flex-1 py-2 rounded-lg ${view === 'achievements' ? `${currentTheme.bg} ${currentTheme.textLight}` : 'text-slate-400'}`}>Lapor</button>
+        <div className="bg-white p-1 rounded-xl shadow-md flex mb-4 text-xs font-bold text-center border border-slate-100 overflow-x-auto">
+             <button onClick={() => setView('journal')} className={`flex-1 py-2 px-2 rounded-lg ${view === 'journal' ? `${currentTheme.bg} ${currentTheme.textLight}` : 'text-slate-400'}`}>Jurnal</button>
+             <button onClick={() => setView('doa')} className={`flex-1 py-2 px-2 rounded-lg ${view === 'doa' ? `${currentTheme.bg} ${currentTheme.textLight}` : 'text-slate-400'}`}>Doa</button>
+             <button onClick={() => setView('hafalan')} className={`flex-1 py-2 px-2 rounded-lg ${view === 'hafalan' ? `${currentTheme.bg} ${currentTheme.textLight}` : 'text-slate-400'}`}>Hafalan</button>
+             <button onClick={() => setView('achievements')} className={`flex-1 py-2 px-2 rounded-lg ${view === 'achievements' ? `${currentTheme.bg} ${currentTheme.textLight}` : 'text-slate-400'}`}>Lapor</button>
         </div>
+
+        {/* --- TAB HAFALAN --- */}
+        {view === 'hafalan' && (
+          <div className="space-y-4 pb-10 animate-in fade-in slide-in-from-bottom-4">
+             <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 text-center">
+                <Mic size={40} className={`mx-auto mb-2 text-${currentTheme.accent}-500`} />
+                <h2 className="text-lg font-bold">Setor Hafalan</h2>
+                <p className="text-xs text-slate-500 mb-4">Rekam hafalan surah/doa/hadits pendekmu disini.</p>
+
+                <div className="text-left mb-4">
+                   <label className="text-xs font-bold text-slate-500 block mb-1">Nama Surah / Hadits / Doa</label>
+                   <input type="text" className="w-full p-3 bg-slate-50 rounded-xl text-sm border focus:border-blue-400 outline-none" placeholder="Contoh: Surah An-Nas / Doa Harian" value={namaSurah} onChange={(e) => setNamaSurah(e.target.value)} />
+                </div>
+
+                {!audioUrl ? (
+                  <button 
+                    onClick={isRecording ? stopRecording : startRecording}
+                    className={`w-full h-16 rounded-2xl flex items-center justify-center gap-3 font-bold text-white transition-all shadow-lg ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-blue-600 active:scale-95'}`}
+                  >
+                    {isRecording ? <StopCircle size={28} /> : <Mic size={28} />}
+                    {isRecording ? `Stop Rekam (${formatTime(recordingTime)})` : 'Mulai Rekam'}
+                  </button>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="bg-slate-100 p-3 rounded-xl flex items-center gap-3">
+                       <div className="bg-blue-100 p-2 rounded-full text-blue-600"><Play size={20} /></div>
+                       <audio controls src={audioUrl} className="w-full h-8" />
+                    </div>
+                    <div className="flex gap-2">
+                       <button onClick={deleteRecording} className="flex-1 py-3 bg-red-100 text-red-600 rounded-xl font-bold flex items-center justify-center gap-2"><Trash2 size={18}/> Ulang</button>
+                       <button onClick={sendToGoogleSheet} disabled={isSubmitting} className="flex-1 py-3 bg-green-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-green-200">
+                         {isSubmitting ? <Loader2 className="animate-spin"/> : <CloudUpload size={18}/>} Kirim
+                       </button>
+                    </div>
+                  </div>
+                )}
+                <p className="text-[10px] text-slate-400 mt-4 bg-yellow-50 p-2 rounded-lg border border-yellow-100">💡 Hemat Kuota: Audio otomatis dikompres agar ringan.</p>
+             </div>
+          </div>
+        )}
+
+        {/* ... VIEW JOURNAL ... */}
         {view === 'journal' && (
           <div className="space-y-4 pb-10">
             <div className="flex items-center justify-between bg-white p-2 rounded-xl shadow-sm"><button onClick={() => setActiveDay(d => Math.max(1, d - 1))} className="p-2 bg-slate-50 rounded-lg"><ChevronLeft size={16}/></button><div className="text-center"><div className="font-bold text-slate-800">Ramadan Hari ke-{activeDay}</div><div className="text-[10px] text-slate-500">{currentDateGregorian}</div></div><button onClick={() => setActiveDay(d => Math.min(30, d + 1))} className="p-2 bg-slate-50 rounded-lg"><ChevronRight size={16}/></button></div>
